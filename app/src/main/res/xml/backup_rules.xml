@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Sample backup rules file; uncomment and customize to include/exclude
+   specific files/domains as data is added (e.g. exclude the encrypted
+   credential DataStore file from any OS-level auto backup).
+-->
+<full-backup-content>
+</full-backup-content>

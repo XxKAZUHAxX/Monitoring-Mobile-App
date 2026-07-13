@@ -2,7 +2,14 @@
 
 > This file is updated after **every** milestone commit. It describes how the app actually works (or, at this stage, how it is currently planned to work before any code exists). See `PLAN.md` for the frozen upfront plan and rationale; this file tracks current reality and any deviations from that plan as implementation proceeds.
 
-Last updated: Milestone 1 — Planning (no code written yet).
+Last updated: Milestone 2 — Initial project setup.
+
+## Milestone 2 notes (Initial project setup)
+
+- Gradle project scaffolded: version catalog (`gradle/libs.versions.toml`), root/app `build.gradle.kts`, `AndroidManifest.xml`, and the `com.example.lessonmonitor` package skeleton (`data/`, `domain/`, `ui/`, `navigation/`, `di/`, `util/` folders will be added as each milestone actually needs them, rather than committed empty).
+- Dependencies wired per the tech stack in the prompt/`PLAN.md`: Compose + Material 3, Hilt (incl. `hilt-work` for future `@HiltWorker`s), Room, DataStore Preferences, `androidx.security-crypto`, kotlinx.serialization (JSON, for backup/export), WorkManager, Biometric, and JUnit/MockK/Turbine for tests.
+- `LessonMonitorApp` (`@HiltAndroidApp`) → `MainActivity` (`@AndroidEntryPoint`) → `LessonMonitorTheme` (M3, dynamic color, dark-mode-aware) → `LessonMonitorNavHost` (single placeholder `dashboard` route) → `DashboardScreen` (placeholder text) — this proves the app→theme→nav→screen chain wires up end to end before any real feature code is added.
+- **Known environment limitation**: this dev container has no JDK/Android SDK/Gradle installed, so the build could not be compiled or run here. The Gradle wrapper's binary `gradle-wrapper.jar` (and the `gradlew`/`gradlew.bat` launcher scripts, which are useless without it) were **not** committed for that reason — open the project in Android Studio, which will offer to regenerate the wrapper automatically, or run `gradle wrapper` once if Gradle is installed locally.
 
 ---
 
@@ -56,4 +63,4 @@ Every occurrence of a recurring lesson is its own `AttendanceSession` row, so ma
 
 ## 4. Deviations From `PLAN.md`
 
-_None yet — implementation has not started._
+_None so far. One refinement (not a deviation): the `data/`, `domain/`, `di/`, `util/` package folders from PLAN.md §5 are being created incrementally as each milestone needs them, rather than all committed empty in Milestone 2._

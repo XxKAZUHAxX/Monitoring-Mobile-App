@@ -1,0 +1,8 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. Compose supplies the real Material 3 color
+         scheme (see ui/theme/Theme.kt); this XML theme just needs to exist
+         for the manifest/activity windows and to avoid an ActionBar flash. -->
+    <style name="Theme.LessonMonitor" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+</resources>
