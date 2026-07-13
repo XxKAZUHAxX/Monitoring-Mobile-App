@@ -2,7 +2,21 @@
 
 > This file is updated after **every** milestone commit. It describes how the app actually works (or, at this stage, how it is currently planned to work before any code exists). See `PLAN.md` for the frozen upfront plan and rationale; this file tracks current reality and any deviations from that plan as implementation proceeds.
 
-Last updated: Milestone 5 — Feature: User Account (local-only).
+Last updated: Milestone 6 — Feature: Category & Lesson CRUD (incl. cascade-delete confirmation).
+
+## Milestone 6 notes (Category & Lesson CRUD)
+
+- **New repositories**: `domain/repository/CategoryRepository.kt` + `data/repository/CategoryRepositoryImpl.kt`, and `domain/repository/LessonRepository.kt` + `data/repository/LessonRepositoryImpl.kt`, both bound via `di/RepositoryModule.kt`. Each interface exposes a `getDeleteImpact(id)` method returning a small data class (`CategoryDeleteImpact`/`LessonDeleteImpact`) built from the `countX()` DAO queries added in Milestone 3 — this is the one place the exact pre-delete counts required by PLAN.md §1 assumption #3 are assembled, so every delete confirmation dialog reads from a single source of truth.
+  - `CategoryDeleteImpact` = lessons + attendance sessions + attendance records under that category (mirrors PLAN.md §2's example dialog text verbatim: "This will delete 4 lessons, 12 sessions, 96 attendance records").
+  - `LessonDeleteImpact` = roster enrollments + attendance sessions + attendance records under that lesson.
+- `DashboardScreen`/`DashboardViewModel` now show a real, live (`Flow`-backed) list of categories with add (FAB), tap-to-open-lessons, and delete-with-confirmation (impact counts fetched on demand, not kept continuously live, since they're only needed right before a delete decision).
+- `CategoryFormScreen`/`CategoryFormViewModel` is a real add/edit form: name (required), description, a single-emoji icon field, and a fixed 7-swatch color palette (a full color picker was judged out of scope for Phase 1 — `CategoryEntity.color` just needs *a* value, not an infinite one). Editing preserves `createdAt`/`id` by copying the originally-loaded entity rather than reconstructing it.
+- `LessonsListScreen`/`LessonsListViewModel` follows the same list/add/delete-with-confirmation pattern, scoped to one `categoryId` (re-subscribes only when the id actually changes, via a cancel-and-restart collection job).
+- `LessonFormScreen`/`LessonFormViewModel` is the most involved screen: title/description/facilitator/place, a recurring-lesson toggle, a recurrence-type dropdown (Daily/Weekly/Custom days), day-of-week `FilterChip`s (ISO 1=Monday..7=Sunday, matching `LessonEntity.recurrenceDaysOfWeek`'s documented CSV format), and start/end date + start/end time fields.
+  - **Deliberate simplification**: dates (`yyyy-MM-dd`) and times (`HH:mm`) are plain validated text fields, not Material3 `DatePicker`/`TimePicker` widgets. Given this environment has no local Kotlin/Gradle compiler to catch mistakes in less-familiar experimental Material3 APIs, plain text input was chosen to keep this milestone reliable; a nicer picker UI can be swapped in later without changing the ViewModel contract.
+  - This screen only persists the Lesson *template* (including its recurrence rule). Actually generating `AttendanceSessionEntity` rows from that rule into the rolling 60-day window is explicitly deferred to the Recurring/Scheduled Lessons milestone (#9), per PLAN.md §1 assumption #4 — `isRecurring`/`recurrenceType` are stored now but nothing yet reads them to create sessions.
+- **Tests added**: `CategoryRepositoryImplTest`, `LessonRepositoryImplTest` (create/update-preserves-createdAt/getDeleteImpact/delete, MockK-based), `DashboardViewModelTest`, `CategoryFormViewModelTest`, `LessonsListViewModelTest`, `LessonFormViewModelTest` (validation paths — blank title, missing recurrence days, malformed date — plus create/update happy paths and CSV day-of-week encoding), all using the shared `MainDispatcherRule`.
+- No navigation graph changes were needed — `DashboardNavGraph.kt`'s existing routes/callbacks already matched the screens' public signatures; only the screens' internal implementations and their (now real) default `hiltViewModel()` parameters changed.
 
 ## Milestone 5 notes (User Account)
 

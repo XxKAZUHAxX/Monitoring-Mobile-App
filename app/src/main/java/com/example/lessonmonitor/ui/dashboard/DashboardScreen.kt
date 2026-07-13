@@ -1,48 +1,131 @@
 package com.example.lessonmonitor.ui.dashboard
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.lessonmonitor.ui.components.PlaceholderScreen
-import com.example.lessonmonitor.ui.theme.LessonMonitorTheme
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.lessonmonitor.data.local.entity.CategoryEntity
 
-/**
- * Real Category list + CRUD lands in the "Category & Lesson Management"
- * milestone (see PLAN.md §7). The callbacks below are wired now — with a
- * hard-coded demo id (`1L`) where a real one would normally come from a list
- * item — purely to prove the nav graph connects through to Lessons List,
- * Category Form, and Search.
- */
 @Composable
 fun DashboardScreen(
     onCategoryClick: (categoryId: Long) -> Unit,
     onAddCategory: () -> Unit,
-    onSearchClick: () -> Unit
+    onSearchClick: () -> Unit,
+    viewModel: DashboardViewModel = hiltViewModel()
 ) {
-    PlaceholderScreen(
-        title = "Dashboard",
-        description = "Categories will be listed here once Room and this milestone are implemented."
-    ) {
-        Button(onClick = { onCategoryClick(1L) }, modifier = Modifier.fillMaxWidth()) {
-            Text("Open sample category's lessons")
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Categories") },
+                actions = {
+                    IconButton(onClick = onSearchClick) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddCategory) {
+                Icon(Icons.Default.Add, contentDescription = "Add category")
+            }
         }
-        Button(onClick = onAddCategory, modifier = Modifier.fillMaxWidth()) {
-            Text("Add category")
+    ) { innerPadding ->
+        if (uiState.categories.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No categories yet. Tap + to add one.")
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(uiState.categories, key = { it.id }) { category ->
+                    CategoryRow(
+                        category = category,
+                        onClick = { onCategoryClick(category.id) },
+                        onDeleteClick = { viewModel.requestDelete(category) }
+                    )
+                }
+            }
         }
-        Button(onClick = onSearchClick, modifier = Modifier.fillMaxWidth()) {
-            Text("Search")
-        }
+    }
+
+    uiState.pendingDelete?.let { pending ->
+        AlertDialog(
+            onDismissRequest = viewModel::cancelDelete,
+            title = { Text("Delete \"${pending.category.name}\"?") },
+            text = {
+                Text(
+                    "This will delete ${pending.impact.lessonCount} lessons, " +
+                        "${pending.impact.sessionCount} sessions, " +
+                        "${pending.impact.recordCount} attendance records."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmDelete) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::cancelDelete) { Text("Cancel") }
+            }
+        )
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-private fun DashboardScreenPreview() {
-    LessonMonitorTheme {
-        DashboardScreen(onCategoryClick = {}, onAddCategory = {}, onSearchClick = {})
+private fun CategoryRow(
+    category: CategoryEntity,
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(category.name, style = MaterialTheme.typography.titleMedium)
+                category.description?.takeIf { it.isNotBlank() }?.let { description ->
+                    Text(description, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            IconButton(onClick = onDeleteClick) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete category")
+            }
+        }
     }
 }
 

@@ -1,7 +1,11 @@
 package com.example.lessonmonitor.di
 
 import com.example.lessonmonitor.data.repository.AuthRepositoryImpl
+import com.example.lessonmonitor.data.repository.CategoryRepositoryImpl
+import com.example.lessonmonitor.data.repository.LessonRepositoryImpl
 import com.example.lessonmonitor.domain.repository.AuthRepository
+import com.example.lessonmonitor.domain.repository.CategoryRepository
+import com.example.lessonmonitor.domain.repository.LessonRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -20,4 +24,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCategoryRepository(impl: CategoryRepositoryImpl): CategoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindLessonRepository(impl: LessonRepositoryImpl): LessonRepository
 }
