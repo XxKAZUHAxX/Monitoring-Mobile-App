@@ -17,6 +17,10 @@ interface AttendanceSessionDao {
     @Query("SELECT * FROM attendance_sessions WHERE id = :sessionId")
     fun getById(sessionId: Long): Flow<AttendanceSessionEntity?>
 
+    /** Backs the Student Detail cross-lesson attendance history (joined in-memory with lessons/records). */
+    @Query("SELECT * FROM attendance_sessions")
+    fun getAll(): Flow<List<AttendanceSessionEntity>>
+
     @Query("SELECT * FROM attendance_sessions WHERE lessonId = :lessonId AND sessionDate = :sessionDate LIMIT 1")
     suspend fun getByLessonAndDate(lessonId: Long, sessionDate: Long): AttendanceSessionEntity?
 

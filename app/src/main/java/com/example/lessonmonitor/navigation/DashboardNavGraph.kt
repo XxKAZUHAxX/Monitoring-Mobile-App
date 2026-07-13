@@ -97,7 +97,7 @@ fun NavGraphBuilder.dashboardGraph(navController: NavHostController) {
             arguments = listOf(navArgument("studentId") { type = NavType.LongType })
         ) { backStackEntry ->
             val studentId = backStackEntry.arguments?.getLong("studentId") ?: Routes.NEW_ID
-            StudentDetailScreen(studentId = studentId)
+            StudentDetailScreen(studentId = studentId, onDeleted = { navController.popBackStack() })
         }
         composable(
             route = Routes.ATTENDANCE_SESSION_PATTERN,

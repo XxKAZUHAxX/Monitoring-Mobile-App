@@ -4,12 +4,10 @@ import com.example.lessonmonitor.data.local.entity.StudentEntity
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Phase-1 local-only Student data access. Only what the Attendance Tracking
- * milestone (#7) needs — listing/searching/looking up students and a
- * minimal (name-only) creation for the roster "quick add" flow. Full profile
- * fields (photo/phone/email/notes) plus update/delete (with the Student
- * cascade-delete confirmation from PLAN.md §1 assumption #9) land in the
- * Student Profiles milestone (#8).
+ * Phase-1 local-only Student data access. Listing/searching/looking up
+ * students plus full profile CRUD (Student Profiles milestone, #8) and the
+ * minimal (name-only) creation used by the Attendance Tracking milestone's
+ * (#7) roster "quick add" flow.
  */
 interface StudentRepository {
     fun getAll(): Flow<List<StudentEntity>>
@@ -18,6 +16,26 @@ interface StudentRepository {
 
     fun getById(studentId: Long): Flow<StudentEntity?>
 
-    /** Minimal (name-only) creation used by the roster "quick add" flow. */
-    suspend fun create(name: String): Long
+    /** [phone]/[email]/[notes]/[photoPath] default to null for the roster "quick add" flow's name-only creation. */
+    suspend fun create(
+        name: String,
+        phone: String? = null,
+        email: String? = null,
+        notes: String? = null,
+        photoPath: String? = null
+    ): Long
+
+    suspend fun update(student: StudentEntity)
+
+    suspend fun delete(student: StudentEntity)
+
+    /** Exact impact counts for the cascade-delete confirmation dialog (PLAN.md §1 assumption #9). */
+    suspend fun getDeleteImpact(studentId: Long): StudentDeleteImpact
 }
+
+/** Mirrors the Student cascade-delete matrix in PLAN.md §2 ("Enrollments, AttendanceRecords referencing them"). */
+data class StudentDeleteImpact(
+    val enrollmentCount: Int,
+    val recordCount: Int
+)
+

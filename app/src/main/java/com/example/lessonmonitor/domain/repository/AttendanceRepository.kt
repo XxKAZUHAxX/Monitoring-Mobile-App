@@ -26,4 +26,13 @@ interface AttendanceRepository {
 
     /** Marking again for the same (sessionId, studentId) overwrites the prior status/reason. */
     suspend fun markAttendance(sessionId: Long, studentId: Long, status: AttendanceStatus, absenceReason: String?)
+
+    /** Cross-lesson attendance history for the Student Detail screen (PLAN.md §4 screen 11), newest first. */
+    fun getHistoryForStudent(studentId: Long): Flow<List<StudentAttendanceHistoryEntry>>
 }
+
+data class StudentAttendanceHistoryEntry(
+    val record: AttendanceRecordEntity,
+    val session: AttendanceSessionEntity,
+    val lessonTitle: String
+)

@@ -2,12 +2,17 @@ package com.example.lessonmonitor.data.repository
 
 import com.example.lessonmonitor.data.local.dao.AttendanceRecordDao
 import com.example.lessonmonitor.data.local.dao.AttendanceSessionDao
+import com.example.lessonmonitor.data.local.dao.LessonDao
 import com.example.lessonmonitor.data.local.entity.AttendanceRecordEntity
 import com.example.lessonmonitor.data.local.entity.AttendanceSessionEntity
 import com.example.lessonmonitor.data.local.entity.AttendanceStatus
+import com.example.lessonmonitor.data.local.entity.LessonEntity
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -17,12 +22,13 @@ class AttendanceRepositoryImplTest {
 
     private val attendanceSessionDao: AttendanceSessionDao = mockk()
     private val attendanceRecordDao: AttendanceRecordDao = mockk()
+    private val lessonDao: LessonDao = mockk()
 
     private lateinit var repository: AttendanceRepositoryImpl
 
     @Before
     fun setUp() {
-        repository = AttendanceRepositoryImpl(attendanceSessionDao, attendanceRecordDao)
+        repository = AttendanceRepositoryImpl(attendanceSessionDao, attendanceRecordDao, lessonDao)
     }
 
     @Test
@@ -56,5 +62,37 @@ class AttendanceRepositoryImplTest {
         assertEquals(2L, slot.captured.studentId)
         assertEquals(AttendanceStatus.ABSENT, slot.captured.status)
         assertEquals("Sick", slot.captured.absenceReason)
+    }
+
+    @Test
+    fun `getHistoryForStudent joins records with their session and lesson title, newest first`() = runTest {
+        val olderSession = AttendanceSessionEntity(id = 1L, lessonId = 10L, sessionDate = 19000L, createdAt = 1L)
+        val newerSession = AttendanceSessionEntity(id = 2L, lessonId = 11L, sessionDate = 19100L, createdAt = 1L)
+        val olderRecord = AttendanceRecordEntity(id = 1L, sessionId = 1L, studentId = 2L, status = AttendanceStatus.PRESENT, recordedAt = 1L)
+        val newerRecord = AttendanceRecordEntity(id = 2L, sessionId = 2L, studentId = 2L, status = AttendanceStatus.ABSENT, recordedAt = 2L)
+        every { attendanceRecordDao.getForStudent(2L) } returns flowOf(listOf(olderRecord, newerRecord))
+        every { attendanceSessionDao.getAll() } returns flowOf(listOf(olderSession, newerSession))
+        every { lessonDao.getAll() } returns flowOf(
+            listOf(
+                LessonEntity(id = 10L, categoryId = 1L, title = "Algebra", startDate = 1L, createdAt = 1L, updatedAt = 1L),
+                LessonEntity(id = 11L, categoryId = 1L, title = "Geometry", startDate = 1L, createdAt = 1L, updatedAt = 1L)
+            )
+        )
+
+        val history = repository.getHistoryForStudent(2L).first()
+
+        assertEquals(listOf("Geometry", "Algebra"), history.map { it.lessonTitle })
+    }
+
+    @Test
+    fun `getHistoryForStudent drops records whose session can't be found`() = runTest {
+        val orphanRecord = AttendanceRecordEntity(id = 1L, sessionId = 99L, studentId = 2L, status = AttendanceStatus.PRESENT, recordedAt = 1L)
+        every { attendanceRecordDao.getForStudent(2L) } returns flowOf(listOf(orphanRecord))
+        every { attendanceSessionDao.getAll() } returns flowOf(emptyList())
+        every { lessonDao.getAll() } returns flowOf(emptyList())
+
+        val history = repository.getHistoryForStudent(2L).first()
+
+        assertEquals(emptyList<Any>(), history)
     }
 }

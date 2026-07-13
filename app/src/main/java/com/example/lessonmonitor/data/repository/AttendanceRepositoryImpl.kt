@@ -2,18 +2,22 @@ package com.example.lessonmonitor.data.repository
 
 import com.example.lessonmonitor.data.local.dao.AttendanceRecordDao
 import com.example.lessonmonitor.data.local.dao.AttendanceSessionDao
+import com.example.lessonmonitor.data.local.dao.LessonDao
 import com.example.lessonmonitor.data.local.entity.AttendanceRecordEntity
 import com.example.lessonmonitor.data.local.entity.AttendanceSessionEntity
 import com.example.lessonmonitor.data.local.entity.AttendanceStatus
 import com.example.lessonmonitor.domain.repository.AttendanceRepository
+import com.example.lessonmonitor.domain.repository.StudentAttendanceHistoryEntry
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class AttendanceRepositoryImpl @Inject constructor(
     private val attendanceSessionDao: AttendanceSessionDao,
-    private val attendanceRecordDao: AttendanceRecordDao
+    private val attendanceRecordDao: AttendanceRecordDao,
+    private val lessonDao: LessonDao
 ) : AttendanceRepository {
 
     override fun getSessionsForLesson(lessonId: Long): Flow<List<AttendanceSessionEntity>> =
@@ -46,4 +50,21 @@ class AttendanceRepositoryImpl @Inject constructor(
             )
         )
     }
+
+    override fun getHistoryForStudent(studentId: Long): Flow<List<StudentAttendanceHistoryEntry>> =
+        combine(
+            attendanceRecordDao.getForStudent(studentId),
+            attendanceSessionDao.getAll(),
+            lessonDao.getAll()
+        ) { records, sessions, lessons ->
+            val sessionsById = sessions.associateBy { it.id }
+            val lessonTitleById = lessons.associateBy({ it.id }, { it.title })
+            records
+                .mapNotNull { record ->
+                    val session = sessionsById[record.sessionId] ?: return@mapNotNull null
+                    val lessonTitle = lessonTitleById[session.lessonId] ?: "Unknown lesson"
+                    StudentAttendanceHistoryEntry(record, session, lessonTitle)
+                }
+                .sortedByDescending { it.session.sessionDate }
+        }
 }
