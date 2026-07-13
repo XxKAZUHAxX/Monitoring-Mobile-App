@@ -2,7 +2,18 @@
 
 > This file is updated after **every** milestone commit. It describes how the app actually works (or, at this stage, how it is currently planned to work before any code exists). See `PLAN.md` for the frozen upfront plan and rationale; this file tracks current reality and any deviations from that plan as implementation proceeds.
 
-Last updated: Milestone 2 — Initial project setup.
+Last updated: Milestone 3 — Room schema.
+
+## Milestone 3 notes (Room schema)
+
+- All 7 tables from PLAN.md §2 are implemented under `data/local/`: `entity/` (`UserEntity`, `CategoryEntity`, `LessonEntity`, `StudentEntity`, `EnrollmentEntity`, `AttendanceSessionEntity`, `AttendanceRecordEntity`, plus the `AttendanceStatus`/`RecurrenceType` enums), `converter/Converters.kt` (enum ⇄ String), `dao/` (one DAO per entity), and `AppDatabase.kt` (version 1, `exportSchema = true`, schema JSON snapshots written to `app/schemas/` for future migrations).
+- **Resolved the `User` table tension flagged in PLAN.md**: `UserEntity` only stores non-sensitive state (`biometricEnabled`, `createdAt`) as a singleton row (`id = 1`). The password hash + salt are *not* Room columns — they'll live in the encrypted DataStore built in the "User account" milestone, per the security decision in PLAN.md §6. This satisfies the deliverable list's "Room schema covering User" literally while keeping the credential out of a plain SQLite table.
+- Cascade deletes are configured at the FK level (`onDelete = CASCADE`) exactly per the matrix in PLAN.md §2. Every DAO likely to sit behind a destructive UI action also exposes `countX(...)` queries (e.g. `LessonDao.countByCategory`, `AttendanceSessionDao.countForCategory`, `AttendanceRecordDao.countForCategory/countForLesson/countForStudent`) so the repository layer (built in the CRUD milestones) can assemble the pre-delete "this will remove N lessons, M sessions, K records" confirmation counts without any raw SQL living outside the DAOs.
+- `EnrollmentEntity` has a unique `(lessonId, studentId)` index and `upsert` (REPLACE-on-conflict) so re-adding a previously removed student reuses the row instead of duplicating it; `AttendanceRecordEntity` has a unique `(sessionId, studentId)` index for the same reason (re-marking attendance overwrites, never duplicates).
+- `AttendanceSessionDao.insert` uses `OnConflictStrategy.IGNORE` against the unique `(lessonId, sessionDate)` index — this is what makes the future rolling-window session generator idempotent (PLAN.md §3 roadblock #2): it can call `insert` for every date in the window every time without checking existence first.
+- `di/DatabaseModule.kt` provides `AppDatabase` and all 7 DAOs as Hilt singletons — this is the "local data source" the Phase-2 remote data source will sit alongside later (PLAN.md §3 roadblock #6).
+- Repository interfaces/impls, domain models, and any `@Relation` POJOs (e.g. a session-with-its-records shape for the Attendance screen) are intentionally deferred to the milestones that actually need them, rather than speculatively added now.
+- Not yet tested with an instrumented Room test (would need the Android test runner); the spec's testing bar (ViewModel/Repository unit tests) will be met starting with the first feature milestone once there's a Repository to test.
 
 ## Milestone 2 notes (Initial project setup)
 

@@ -57,6 +57,11 @@ android {
 
 kapt {
     correctErrorTypes = true
+    arguments {
+        // Committed schema snapshots (per-version) so future Room migrations
+        // can be written/tested against a known-good prior schema.
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
 }
 
 dependencies {
