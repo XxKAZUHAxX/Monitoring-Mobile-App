@@ -2,7 +2,16 @@
 
 > This file is updated after **every** milestone commit. It describes how the app actually works (or, at this stage, how it is currently planned to work before any code exists). See `PLAN.md` for the frozen upfront plan and rationale; this file tracks current reality and any deviations from that plan as implementation proceeds.
 
-Last updated: Milestone 3 — Room schema.
+Last updated: Milestone 4 — Navigation skeleton.
+
+## Milestone 4 notes (Navigation skeleton)
+
+- Replaced the single-route placeholder from Milestone 2 with the full route set from PLAN.md §4: `navigation/Routes.kt` (route patterns + concrete-route builder functions, using `0L` as the "create new" sentinel instead of nullable query params) and `navigation/BottomNavItem.kt`.
+- Two-level graph, matching PLAN.md exactly: the outer `NavHost` (`LessonMonitorNavHost.kt`) holds the `auth_graph` (Splash/CreateCredential/Login, no bottom nav) and a single `main` destination; `main` (`MainScreen.kt`) owns its own inner `NavHost` + Material 3 `NavigationBar`, with one nested graph per bottom-nav tab (`DashboardNavGraph.kt`, `CalendarNavGraph.kt`, `StatisticsNavGraph.kt`, `SettingsNavGraph.kt`) so each tab keeps its own back stack/state on tab switches (`saveState`/`restoreState` on the bottom nav clicks).
+- All 19 screens from PLAN.md §4 now exist as real (if placeholder) Composables, wired with working navigation callbacks — e.g. Dashboard → Lessons List → Lesson Detail → Student Picker/Attendance Session, Calendar → Day Agenda → Attendance Session, Statistics/Search → Student Detail. `StudentDetail` is declared once (in the Dashboard tab graph) and navigated to from both the Dashboard and Statistics tabs, since routes are unique across the whole flattened graph regardless of which nested block declares them.
+- Added `ui/components/PlaceholderScreen.kt`, a shared shell (title + description + optional action buttons) used by every screen that doesn't have its real feature milestone yet — each placeholder screen states in its description which upcoming milestone will replace it. Screens are migrated off this one-by-one as features land; it is not meant to survive to the final app.
+- **Deferred to the Notifications milestone**: the `attendance_session/{lessonId}/{sessionId}` destination does not yet declare a `navDeepLink` / handle `Activity` intents for the `lessonmonitor://lesson/{lessonId}/session/{sessionId}` notification deep link from PLAN.md §4. Wiring that up needs `MainActivity`'s intent handling threaded through to the *inner* NavHost inside `MainScreen`, which is naturally built alongside the actual notification code rather than speculatively now.
+- Settings' "Log out" button now navigates back to `Login` — this is nav-only; it doesn't yet clear anything since no session state exists until the User Account milestone.
 
 ## Milestone 3 notes (Room schema)
 
