@@ -13,6 +13,10 @@ interface UserDao {
     @Query("SELECT * FROM user WHERE id = ${UserEntity.SINGLETON_ID} LIMIT 1")
     fun get(): Flow<UserEntity?>
 
+    /** One-shot read, e.g. for read-modify-write updates like toggling `biometricEnabled`. */
+    @Query("SELECT * FROM user WHERE id = ${UserEntity.SINGLETON_ID} LIMIT 1")
+    suspend fun getOnce(): UserEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(user: UserEntity)
 

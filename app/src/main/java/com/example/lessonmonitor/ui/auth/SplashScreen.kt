@@ -1,37 +1,40 @@
 package com.example.lessonmonitor.ui.auth
 
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.example.lessonmonitor.ui.components.PlaceholderScreen
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
- * Real behavior (built in the "User account" milestone): silently reads the
- * `isLoggedIn` DataStore flag and routes straight to [onAlreadyLoggedIn] or
- * [onNeedsLogin]/[onNeedsCredentialSetup] with no user interaction. Exposed
- * as buttons for now so all three outcomes can be exercised manually while
- * the nav graph shape is being verified.
+ * Silently reads the credential/session state and routes to the right
+ * destination with no user interaction — see [SplashViewModel].
  */
 @Composable
 fun SplashScreen(
     onNeedsLogin: () -> Unit,
     onNeedsCredentialSetup: () -> Unit,
-    onAlreadyLoggedIn: () -> Unit
+    onAlreadyLoggedIn: () -> Unit,
+    viewModel: SplashViewModel = hiltViewModel()
 ) {
-    PlaceholderScreen(
-        title = "Lesson Monitor",
-        description = "Checking local session… (placeholder — real session check lands in the User Account milestone)"
-    ) {
-        Button(onClick = onNeedsCredentialSetup, modifier = Modifier.fillMaxWidth()) {
-            Text("First run: create credential")
-        }
-        Button(onClick = onNeedsLogin, modifier = Modifier.fillMaxWidth()) {
-            Text("Returning: go to login")
-        }
-        Button(onClick = onAlreadyLoggedIn, modifier = Modifier.fillMaxWidth()) {
-            Text("Dev shortcut: already logged in")
+    val destination by viewModel.destination.collectAsStateWithLifecycle()
+
+    LaunchedEffect(destination) {
+        when (destination) {
+            SplashViewModel.Destination.NeedsLogin -> onNeedsLogin()
+            SplashViewModel.Destination.NeedsCredentialSetup -> onNeedsCredentialSetup()
+            SplashViewModel.Destination.AlreadyLoggedIn -> onAlreadyLoggedIn()
+            SplashViewModel.Destination.Loading -> Unit
         }
     }
+
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
 }
+

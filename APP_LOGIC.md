@@ -2,7 +2,18 @@
 
 > This file is updated after **every** milestone commit. It describes how the app actually works (or, at this stage, how it is currently planned to work before any code exists). See `PLAN.md` for the frozen upfront plan and rationale; this file tracks current reality and any deviations from that plan as implementation proceeds.
 
-Last updated: Milestone 4 — Navigation skeleton.
+Last updated: Milestone 5 — Feature: User Account (local-only).
+
+## Milestone 5 notes (User Account)
+
+- **Storage split, exactly per PLAN.md §6**: `data/datastore/CredentialStore.kt` wraps an `EncryptedSharedPreferences` instance (Keystore-backed `MasterKey`, provided by `di/DataStoreModule.kt`) holding only the PBKDF2 hash + salt — never the plaintext password. `data/datastore/SessionPreferences.kt` wraps a plain (unencrypted) Jetpack DataStore holding only the transient `isLoggedIn` boolean. Logging out clears just that flag; the credential itself is untouched.
+- `util/PasswordHasher.kt` implements PBKDF2WithHmacSHA256 (120,000 iterations, random 16-byte salt) with a constant-time hash comparison in `verify()` to avoid leaking timing information. Uses `java.util.Base64` (not `android.util.Base64`) — safe since minSdk is 26, and it lets this class be unit-tested on the plain JVM without Robolectric.
+- `domain/repository/AuthRepository.kt` + `data/repository/AuthRepositoryImpl.kt` tie the two stores and `UserDao` together: `createCredential` hashes + saves + creates the singleton `UserEntity` row + logs in; `verifyPassword` re-hashes with the stored salt and compares; `setBiometricEnabled`/`isBiometricEnabled` read-modify-write the `UserEntity.biometricEnabled` flag. Bound to the interface via `di/RepositoryModule.kt` (`@Binds`).
+- Real logic now lives in `SplashScreen`/`SplashViewModel` (auto-routes based on `hasCredential()`/`isLoggedIn()`, no more demo buttons), `CreateCredentialScreen`/`CreateCredentialViewModel` (password + confirm fields, 4-char minimum — assumption, this is a local PIN gate not a web login), and `LoginScreen`/`LoginViewModel` (password field + optional biometric button, shown only when the repository's `biometricEnabled` flag is set).
+- **Biometric unlock**: `ui/auth/BiometricAuth.kt` wraps `androidx.biometric.BiometricPrompt`, which requires a `FragmentActivity` — so `MainActivity` now extends `FragmentActivity` instead of plain `ComponentActivity` (still fully Compose-compatible, since `FragmentActivity` is itself a `ComponentActivity`). The Settings screen's biometric `Switch` is disabled with an explanatory note if `BiometricManager` reports no usable hardware/enrollment on the device.
+- Settings screen now performs a real logout (`SettingsViewModel.logout()` clears the session flag via the repository) before the nav graph pops back to Login — previously this was nav-only.
+- **First real unit tests landed** (spec's testing bar): `PasswordHasherTest`, `AuthRepositoryImplTest` (MockK-based, covers create/verify/logout/biometric-toggle paths), and `CreateCredentialViewModelTest`/`LoginViewModelTest` (validation + success/failure paths), using a shared `MainDispatcherRule` (`UnconfinedTestDispatcher`) so `viewModelScope` coroutines run synchronously in tests.
+- Added `androidx.fragment:fragment-ktx` dependency for `FragmentActivity`.
 
 ## Milestone 4 notes (Navigation skeleton)
 
