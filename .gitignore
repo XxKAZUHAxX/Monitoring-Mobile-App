@@ -21,3 +21,7 @@ gradlew.bat
 # Keystore files (never commit signing keys)
 *.jks
 *.keystore
+
+
+# Claude Code
+.claude/

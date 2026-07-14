@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +41,7 @@ import com.example.lessonmonitor.data.local.entity.AttendanceSessionEntity
 import com.example.lessonmonitor.domain.repository.RosterEntry
 import java.time.LocalDate
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LessonDetailScreen(
     lessonId: Long,
