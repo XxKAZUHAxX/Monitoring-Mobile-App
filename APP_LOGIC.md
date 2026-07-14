@@ -2,7 +2,7 @@
 
 > This file is updated after **every** milestone commit. It describes how the app actually works (or, at this stage, how it is currently planned to work before any code exists). See `PLAN.md` for the frozen upfront plan and rationale; this file tracks current reality and any deviations from that plan as implementation proceeds.
 
-Last updated: Milestone 13 — Feature: Export/backup.
+Last updated: Milestone 15 — Feature: Dark mode.
 
 ## Milestone 13 notes (Export/backup)
 
@@ -128,6 +128,32 @@ Last updated: Milestone 13 — Feature: Export/backup.
 - `LessonMonitorApp` (`@HiltAndroidApp`) → `MainActivity` (`@AndroidEntryPoint`) → `LessonMonitorTheme` (M3, dynamic color, dark-mode-aware) → `LessonMonitorNavHost` (single placeholder `dashboard` route) → `DashboardScreen` (placeholder text) — this proves the app→theme→nav→screen chain wires up end to end before any real feature code is added.
 - **Known environment limitation**: this dev container has no JDK/Android SDK/Gradle installed, so the build could not be compiled or run here. The Gradle wrapper's binary `gradle-wrapper.jar` (and the `gradlew`/`gradlew.bat` launcher scripts, which are useless without it) were **not** committed for that reason — open the project in Android Studio, which will offer to regenerate the wrapper automatically, or run `gradle wrapper` once if Gradle is installed locally.
 
+## Milestone 14 notes (Notifications/Reminders)
+
+- **New `data/worker/` package** created, fulfilling the planned package structure from PLAN.md §5. Contains four classes:
+  - **`NotificationHelper`** — plain Kotlin `object` (no DI). `createChannel(context)` is called once from `LessonMonitorApp.onCreate()` (idempotent). `showSessionReminder(context, lessonId, sessionId, lessonTitle, sessionDateEpochDay)` builds + posts a notification with a deep-link `PendingIntent` targeting `MainActivity` with URI `lessonmonitor://lesson/{lessonId}/session/{sessionId}`. Notification IDs are `sessionId.toInt()` so re-firing silently replaces the old one.
+  - **`AlarmScheduler`** — `@Singleton` with DI (`@ApplicationContext Context`, `AttendanceRepository`, `LessonRepository`). `syncAlarms()` is a one-shot suspend function (not a `Flow`): reads `AttendanceRepository.getSessionsInRange(today, today+60).first()` + `LessonRepository.getAll().first()` → builds a `Map<Long, LessonEntity>` (the same "combine + manual lookup map" pattern used throughout this codebase) → for each session whose lesson has a non-null `startTime`, computes `triggerAtMillis = sessionDate * 86400000 + startTime * 60000` and schedules via `AlarmManager.setExactAndAllowWhileIdle()`. Skips alarms that would fire in the past. Each alarm uses `requestCode = sessionId.toInt()`.
+  - **`SessionReminderReceiver`** — plain `BroadcastReceiver` (no Hilt injection, `exported=false`). Extracts lessonId/sessionId/lessonTitle/sessionDate from intent extras (placed there by `AlarmScheduler`) and calls `NotificationHelper.showSessionReminder()`.
+  - **`SessionWindowWorker`** — `@HiltWorker` `CoroutineWorker` injected with `RecurringSessionGenerator` and `AlarmScheduler`. `doWork()` calls `generateUpcomingSessions()` then `syncAlarms()` — both are idempotent, so re-running is always safe. Returns `Result.success()` on success, `Result.retry()` on any exception.
+- **`LessonMonitorApp`** now implements `Configuration.Provider` (injects `HiltWorkerFactory`) so `@HiltWorker` classes work. `onCreate()` creates the notification channel idempotently and enqueues a daily `PeriodicWorkRequest` (`ExistingPeriodicWorkPolicy.KEEP`) for `SessionWindowWorker`.
+- **`DashboardNavGraph.kt`'s `AttendanceSession` composable** now declares a `navDeepLink` with URI pattern `lessonmonitor://lesson/{lessonId}/session/{sessionId}` — Compose Navigation traverses nested graphs to resolve it.
+- **`MainActivity`** now exposes the outer `NavHostController` via `LessonMonitorNavHost`'s new `onNavControllerReady` callback, and forwards deep-link intents to it both from `onCreate` (initial launch) and `onNewIntent` (notification tap while app is already running).
+- **`MainScreenViewModel`** now also injects `AlarmScheduler` and calls `syncAlarms()` after `generateUpcomingSessions()` — the app-open trigger now handles both session generation and alarm scheduling.
+- **AlarmManager alarms are cleared on reboot**. No `BOOT_COMPLETED` receiver was added — instead, the daily `SessionWindowWorker` (surviving reboot via WorkManager) restores them within a day. This is a deliberate Phase 1 scope decision.
+- **No runtime permission request for `POST_NOTIFICATIONS`** (Android 13+) was added — the permission is declared in the manifest but requesting it at runtime is left as a future polish item (the notification will simply be suppressed by the system on Android 13+ until the user grants permission via system settings).
+- **Tests added**: `SessionWindowWorkerTest` (MockK-based: `doWork` calls generator then scheduler and returns `success`, returns `retry` on generator/`scheduler` failure). `AlarmScheduler`'s Android-framework-dependent parts (`AlarmManager`, `PendingIntent`) are not unit-tested — they're exercised via the worker test + manual verification.
+
+## Milestone 15 notes (Dark mode)
+
+- **New `data/datastore/ThemePreferences.kt`** — follows `SessionPreferences.kt` pattern exactly: `@Singleton` with `@Inject constructor(private val dataStore: DataStore<Preferences>)`. Stores a `ThemeMode` enum (`SYSTEM`/`LIGHT`/`DARK`) as a string preference keyed `"theme_mode"`. Reuses the existing `session_prefs` DataStore (no new DataStore file).
+- **`ui/theme/Theme.kt`'s `LessonMonitorTheme`** signature changed from `darkTheme: Boolean = isSystemInDarkTheme()` to `themeMode: ThemeMode = ThemeMode.SYSTEM`. The composable computes `darkTheme` from the mode: `SYSTEM` → `isSystemInDarkTheme()`, `DARK` → `true`, `LIGHT` → `false`. All Compose-level theme colors (`MaterialTheme.colorScheme.*`) were already used throughout the app, so no composable changes were needed.
+- **`MainActivity`** now injects `ThemePreferences` and collects `themeMode` as state via `collectAsStateWithLifecycle()`, passing it to `LessonMonitorTheme(themeMode = themeMode)`. The entire tree re-composes when the user changes the preference in Settings.
+- **`SettingsScreen`** is now a real screen — the **last `PlaceholderScreen` consumer has been migrated off**. Layout: `Scaffold` + `TopAppBar` + scrollable `Column` with card-grouped sections: **Appearance** (3 `RadioButton` rows for System default / Light / Dark), **Security** (biometric `Switch` — existing), **Data** (Export / Backup & Restore buttons — existing), **Account** (Log out button — existing).
+- **`PlaceholderScreen.kt` deleted** — it had no remaining callers after SettingsScreen was migrated.
+- **`SettingsViewModel`** now also injects `ThemePreferences`, exposing `themeMode: StateFlow<ThemeMode>` and `setThemeMode(mode)`. Pattern matches the existing `biometricEnabled` / `setBiometricEnabled` pair.
+- **`di/DataStoreModule.kt`** needed no changes — `ThemePreferences` uses constructor injection with the already-provided `DataStore<Preferences>`.
+- **Tests**: `SettingsViewModelTest` added (covers `themeMode` read/`setThemeMode` write, biometric toggle, logout callback). Uses MockK mocks for both `AuthRepository` and `ThemePreferences`.
+
 ---
 
 ## 1. Overall Data Flow
@@ -180,4 +206,9 @@ Every occurrence of a recurring lesson is its own `AttendanceSession` row, so ma
 
 ## 4. Deviations From `PLAN.md`
 
-_None so far. One refinement (not a deviation): the `data/`, `domain/`, `di/`, `util/` package folders from PLAN.md §5 are being created incrementally as each milestone needs them, rather than all committed empty in Milestone 2._
+1. **Package structure**: `domain/schedule/` exists (home of `RecurringSessionGenerator`) instead of PLAN.md §5's planned `domain/usecase/`. The `data/worker/` package (Notifications milestone) was created as planned.
+2. **Dark mode enum**: stored as a `ThemeMode` string enum (`SYSTEM`/`LIGHT`/`DARK`) in DataStore rather than `APP_LOGIC.md` §2's originally described "dark mode toggle (DataStore, defaults to system theme)" which implied a boolean.
+3. **`PlaceholderScreen.kt` deleted**: the shared placeholder shell was removed after the last consumer (SettingsScreen) was migrated to a real screen in the Dark Mode milestone — it was always described as "not meant to survive to the final app."
+4. **No boot-time alarm rescheduling**: `AlarmManager` alarms are cleared on device reboot; the Notifications milestone relies on the daily `SessionWindowWorker` (surviving via WorkManager) to restore them within 24h rather than adding a `BOOT_COMPLETED` receiver. This is a Phase 1 scope decision.
+5. **No `README.md`/`ARCHITECTURE.md` until the final docs milestone** (Milestone 16), rather than existing from project start as the prompt's deliverable list suggested — they were created as a dedicated final pass.
+6. **One refinement (not a deviation)**: the `data/`, `domain/`, `di/`, `util/` package folders from PLAN.md §5 were created incrementally as each milestone needed them, rather than all committed empty in Milestone 2.

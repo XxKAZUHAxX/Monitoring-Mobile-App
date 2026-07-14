@@ -66,8 +66,9 @@ UI (Compose screens + ViewModels)
 | `app/src/main/java/.../navigation/LessonMonitorNavHost.kt` | Root navigation host |
 | `app/src/main/java/.../navigation/MainScreen.kt` | Bottom-nav shell hosting the 4 tab graphs |
 | `app/src/main/java/.../di/` | Hilt modules (Database, DataStore, Repository) |
+| `data/worker/` | Notification system: AlarmScheduler, worker, receiver, helper (Milestone 14) |
 | `gradle/libs.versions.toml` | Version catalog — all dependency versions in one place |
 
 ## Milestone History
 
-Each feature was committed as a separate milestone (see git log), roughly in this order: project setup → Room schema → navigation skeleton → user account → category/lesson CRUD → attendance tracking → student profiles → recurring lessons → calendar view → search & filter → statistics dashboard → export/backup. There is no dedicated Notifications or Dark Mode milestone commit yet on `main`.
+Each feature was committed as a separate milestone (see git log), in this order: project setup → Room schema → navigation skeleton → user account → category/lesson CRUD → attendance tracking → student profiles → recurring lessons → calendar view → search & filter → statistics dashboard → export/backup → notifications/reminders → dark mode → final docs pass. All 16 planned milestones are complete.
