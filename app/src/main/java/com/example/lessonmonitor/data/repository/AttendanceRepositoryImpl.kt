@@ -7,6 +7,7 @@ import com.example.lessonmonitor.data.local.entity.AttendanceRecordEntity
 import com.example.lessonmonitor.data.local.entity.AttendanceSessionEntity
 import com.example.lessonmonitor.data.local.entity.AttendanceStatus
 import com.example.lessonmonitor.domain.repository.AttendanceRepository
+import com.example.lessonmonitor.domain.repository.CalendarSessionEntry
 import com.example.lessonmonitor.domain.repository.StudentAttendanceHistoryEntry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -66,5 +67,16 @@ class AttendanceRepositoryImpl @Inject constructor(
                     StudentAttendanceHistoryEntry(record, session, lessonTitle)
                 }
                 .sortedByDescending { it.session.sessionDate }
+        }
+
+    override fun getSessionsInRange(startEpochDay: Long, endEpochDay: Long): Flow<List<CalendarSessionEntry>> =
+        combine(
+            attendanceSessionDao.getInDateRange(startEpochDay, endEpochDay),
+            lessonDao.getAll()
+        ) { sessions, lessons ->
+            val lessonTitleById = lessons.associateBy({ it.id }, { it.title })
+            sessions.map { session ->
+                CalendarSessionEntry(session, lessonTitleById[session.lessonId] ?: "Unknown lesson")
+            }
         }
 }

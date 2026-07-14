@@ -29,10 +29,18 @@ interface AttendanceRepository {
 
     /** Cross-lesson attendance history for the Student Detail screen (PLAN.md §4 screen 11), newest first. */
     fun getHistoryForStudent(studentId: Long): Flow<List<StudentAttendanceHistoryEntry>>
+
+    /** Backs the Calendar/DayAgenda screens (PLAN.md §4 screens 13/14), inclusive of both bounds. */
+    fun getSessionsInRange(startEpochDay: Long, endEpochDay: Long): Flow<List<CalendarSessionEntry>>
 }
 
 data class StudentAttendanceHistoryEntry(
     val record: AttendanceRecordEntity,
+    val session: AttendanceSessionEntity,
+    val lessonTitle: String
+)
+
+data class CalendarSessionEntry(
     val session: AttendanceSessionEntity,
     val lessonTitle: String
 )

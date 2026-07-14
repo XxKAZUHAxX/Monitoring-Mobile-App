@@ -2,7 +2,15 @@
 
 > This file is updated after **every** milestone commit. It describes how the app actually works (or, at this stage, how it is currently planned to work before any code exists). See `PLAN.md` for the frozen upfront plan and rationale; this file tracks current reality and any deviations from that plan as implementation proceeds.
 
-Last updated: Milestone 9 — Feature: Recurring/scheduled lessons (rolling window generation).
+Last updated: Milestone 10 — Feature: Calendar/schedule view.
+
+## Milestone 10 notes (Calendar/schedule view)
+
+- **`AttendanceRepository` gained `getSessionsInRange(startEpochDay, endEpochDay)`**, joining the existing `AttendanceSessionDao.getInDateRange` query (built in Milestone 3, unused until now) with `LessonDao.getAll()` in-memory (same "combine + manual lookup map" shape as `getHistoryForStudent`) into `CalendarSessionEntry(session, lessonTitle)`.
+- **`CalendarScreen`/`CalendarViewModel`** is now a real Monday-starting month grid (built manually with `Row`/`Column`, not `LazyVerticalGrid`, to keep the layout logic simple and easy to hand-verify without a local compiler): prev/next month buttons, a "Today" shortcut, and a small dot on any day that has at least one `AttendanceSession`. Tapping a day calls the existing `onDayClick(epochDay)` callback — no navigation graph changes were needed since `CalendarNavGraph.kt`'s routes/callbacks already matched.
+- **`DayAgendaScreen`/`DayAgendaViewModel`** lists that day's sessions (lesson title + facilitator/place override), tap-through to `AttendanceSession` via the existing `onSessionClick(lessonId, sessionId)` callback.
+- **Second rolling-window trigger wired**: PLAN.md §1 assumption #4 lists "the Calendar screen is opened" as a regeneration trigger alongside app-open (Milestone 9). `CalendarViewModel` now also injects `RecurringSessionGenerator` and calls `generateUpcomingSessions()` once on creation — safe to call again since it's idempotent. The third trigger ("scrolls the calendar past the current window edge") doesn't apply to a month-grid UI (no infinite scroll), so it's intentionally not implemented — noted here as a deliberate deviation from that part of the assumption.
+- **Tests added**: `getSessionsInRange` cases (join + orphan-title-fallback) added to `AttendanceRepositoryImplTest`; new `CalendarViewModelTest` (loads current month, re-runs the generator, groups sessions by day, month navigation) and `DayAgendaViewModelTest` (sorts by lesson title, `load` idempotent per epoch day).
 
 ## Milestone 9 notes (Recurring/scheduled lessons)
 

@@ -95,4 +95,30 @@ class AttendanceRepositoryImplTest {
 
         assertEquals(emptyList<Any>(), history)
     }
+
+    @Test
+    fun `getSessionsInRange joins sessions in range with their lesson title`() = runTest {
+        val session = AttendanceSessionEntity(id = 1L, lessonId = 10L, sessionDate = 19000L, createdAt = 1L)
+        every { attendanceSessionDao.getInDateRange(19000L, 19010L) } returns flowOf(listOf(session))
+        every { lessonDao.getAll() } returns flowOf(
+            listOf(LessonEntity(id = 10L, categoryId = 1L, title = "Algebra", startDate = 1L, createdAt = 1L, updatedAt = 1L))
+        )
+
+        val entries = repository.getSessionsInRange(19000L, 19010L).first()
+
+        assertEquals(1, entries.size)
+        assertEquals("Algebra", entries[0].lessonTitle)
+        assertEquals(session, entries[0].session)
+    }
+
+    @Test
+    fun `getSessionsInRange falls back to a placeholder title for an orphaned session`() = runTest {
+        val session = AttendanceSessionEntity(id = 1L, lessonId = 99L, sessionDate = 19000L, createdAt = 1L)
+        every { attendanceSessionDao.getInDateRange(19000L, 19010L) } returns flowOf(listOf(session))
+        every { lessonDao.getAll() } returns flowOf(emptyList())
+
+        val entries = repository.getSessionsInRange(19000L, 19010L).first()
+
+        assertEquals("Unknown lesson", entries[0].lessonTitle)
+    }
 }
