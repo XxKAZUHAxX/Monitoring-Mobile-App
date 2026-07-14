@@ -27,6 +27,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Receives AlarmManager broadcasts scheduled by AlarmScheduler and posts
+             local notifications reminding the user of an upcoming lesson session.
+             Exported=false since only the local AlarmManager sends these. -->
+        <receiver
+            android:name=".data.worker.SessionReminderReceiver"
+            android:exported="false" />
+
         <!-- Share sheet for CSV/JSON exports (Feature: Export/backup, PLAN.md §7 milestone 13). -->
         <provider
             android:name="androidx.core.content.FileProvider"

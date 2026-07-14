@@ -6,6 +6,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.example.lessonmonitor.ui.attendance.AttendanceSessionScreen
 import com.example.lessonmonitor.ui.category.CategoryFormScreen
 import com.example.lessonmonitor.ui.dashboard.DashboardScreen
@@ -104,10 +105,10 @@ fun NavGraphBuilder.dashboardGraph(navController: NavHostController) {
             arguments = listOf(
                 navArgument("lessonId") { type = NavType.LongType },
                 navArgument("sessionId") { type = NavType.LongType }
+            ),
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "lessonmonitor://lesson/{lessonId}/session/{sessionId}" }
             )
-            // NOTE: the notification deep link (`lessonmonitor://lesson/{lessonId}/session/{sessionId}`,
-            // PLAN.md §4) is wired up in the Notifications milestone — it needs MainActivity's
-            // intent handling threaded through to this inner NavHost, which doesn't exist yet.
         ) { backStackEntry ->
             val lessonId = backStackEntry.arguments?.getLong("lessonId") ?: Routes.NEW_ID
             val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: Routes.NEW_ID
