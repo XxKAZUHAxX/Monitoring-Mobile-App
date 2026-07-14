@@ -32,6 +32,12 @@ interface AttendanceRepository {
 
     /** Backs the Calendar/DayAgenda screens (PLAN.md §4 screens 13/14), inclusive of both bounds. */
     fun getSessionsInRange(startEpochDay: Long, endEpochDay: Long): Flow<List<CalendarSessionEntry>>
+
+    /** Statistics dashboard (PLAN.md §7 milestone 12): present-vs-total across every session for one student. */
+    suspend fun getStudentAttendanceStats(studentId: Long): AttendanceStats
+
+    /** Statistics dashboard (PLAN.md §7 milestone 12): present-vs-total across every session for one lesson. */
+    suspend fun getLessonAttendanceStats(lessonId: Long): AttendanceStats
 }
 
 data class StudentAttendanceHistoryEntry(
@@ -44,3 +50,9 @@ data class CalendarSessionEntry(
     val session: AttendanceSessionEntity,
     val lessonTitle: String
 )
+
+/** [presentCount] out of [totalCount] attendance records with status PRESENT. */
+data class AttendanceStats(val presentCount: Int, val totalCount: Int) {
+    /** 0f (not NaN) when there are no records yet, so the UI can show "0%" instead of crashing. */
+    val presentRate: Float get() = if (totalCount == 0) 0f else presentCount.toFloat() / totalCount
+}

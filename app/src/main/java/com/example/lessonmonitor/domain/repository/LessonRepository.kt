@@ -17,6 +17,9 @@ import kotlinx.coroutines.flow.Flow
 interface LessonRepository {
     fun getAllByCategory(categoryId: Long): Flow<List<LessonEntity>>
 
+    /** Global (cross-category) list, backing the Statistics dashboard's per-lesson view (milestone #12). */
+    fun getAll(): Flow<List<LessonEntity>>
+
     fun getById(lessonId: Long): Flow<LessonEntity?>
 
     /** Feeds the rolling-window session generator (milestone #9, `RecurringSessionGenerator`). */

@@ -121,4 +121,38 @@ class AttendanceRepositoryImplTest {
 
         assertEquals("Unknown lesson", entries[0].lessonTitle)
     }
+
+    @Test
+    fun `getStudentAttendanceStats combines the present and total counts for that student`() = runTest {
+        coEvery { attendanceRecordDao.countPresentForStudent(2L) } returns 7
+        coEvery { attendanceRecordDao.countForStudent(2L) } returns 10
+
+        val stats = repository.getStudentAttendanceStats(2L)
+
+        assertEquals(7, stats.presentCount)
+        assertEquals(10, stats.totalCount)
+        assertEquals(0.7f, stats.presentRate)
+    }
+
+    @Test
+    fun `getStudentAttendanceStats presentRate is 0 when there are no records yet`() = runTest {
+        coEvery { attendanceRecordDao.countPresentForStudent(2L) } returns 0
+        coEvery { attendanceRecordDao.countForStudent(2L) } returns 0
+
+        val stats = repository.getStudentAttendanceStats(2L)
+
+        assertEquals(0f, stats.presentRate)
+    }
+
+    @Test
+    fun `getLessonAttendanceStats combines the present and total counts for that lesson`() = runTest {
+        coEvery { attendanceRecordDao.countPresentForLesson(4L) } returns 3
+        coEvery { attendanceRecordDao.countForLesson(4L) } returns 12
+
+        val stats = repository.getLessonAttendanceStats(4L)
+
+        assertEquals(3, stats.presentCount)
+        assertEquals(12, stats.totalCount)
+        assertEquals(0.25f, stats.presentRate)
+    }
 }

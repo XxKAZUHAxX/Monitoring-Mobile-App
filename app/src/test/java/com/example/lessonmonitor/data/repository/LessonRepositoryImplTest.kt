@@ -131,4 +131,14 @@ class LessonRepositoryImplTest {
 
         assertEquals(listOf(lesson), result)
     }
+
+    @Test
+    fun `getAll delegates to the DAO`() = runTest {
+        val lesson = LessonEntity(id = 1L, categoryId = 1L, title = "Algebra", startDate = 19000L, createdAt = 1L, updatedAt = 1L)
+        every { lessonDao.getAll() } returns flowOf(listOf(lesson))
+
+        val result = repository.getAll().first()
+
+        assertEquals(listOf(lesson), result)
+    }
 }

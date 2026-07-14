@@ -23,6 +23,8 @@ class LessonRepositoryImpl @Inject constructor(
     override fun getAllByCategory(categoryId: Long): Flow<List<LessonEntity>> =
         lessonDao.getAllByCategory(categoryId)
 
+    override fun getAll(): Flow<List<LessonEntity>> = lessonDao.getAll()
+
     override fun getById(lessonId: Long): Flow<LessonEntity?> = lessonDao.getById(lessonId)
 
     override suspend fun getAllRecurring(): List<LessonEntity> = lessonDao.getAllRecurring()

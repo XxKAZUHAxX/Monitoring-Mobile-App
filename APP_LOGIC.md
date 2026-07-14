@@ -2,7 +2,15 @@
 
 > This file is updated after **every** milestone commit. It describes how the app actually works (or, at this stage, how it is currently planned to work before any code exists). See `PLAN.md` for the frozen upfront plan and rationale; this file tracks current reality and any deviations from that plan as implementation proceeds.
 
-Last updated: Milestone 11 — Feature: Search & filter.
+Last updated: Milestone 12 — Feature: Attendance statistics dashboard.
+
+## Milestone 12 notes (Attendance statistics dashboard)
+
+- **`AttendanceRepository` gained `getStudentAttendanceStats(studentId)`/`getLessonAttendanceStats(lessonId)`**, returning a new `AttendanceStats(presentCount, totalCount)` data class (with a computed `presentRate: Float`, `0f` — not `NaN` — when `totalCount == 0`). Both delegate to `AttendanceRecordDao` count queries (`countPresentForStudent`/`countForStudent`, `countPresentForLesson`/`countForLesson`) that were already added back in Milestone 3 with exactly this dashboard in mind, but had no caller until now.
+- **`LessonRepository` gained `getAll()`**, a global (cross-category) list — a thin passthrough to `LessonDao.getAll()` (already used internally by `AttendanceRepositoryImpl`'s joins since Milestone 8, now also exposed at the repository layer for the Statistics dashboard's per-lesson tab). `StudentRepository.getAll()` already existed since Milestone 7.
+- **`StatisticsScreen`/`StatisticsViewModel`** is now real: a `TabRow` with **Students** and **Lessons** tabs, each a `LazyColumn` of cards showing a name/title, a "`X`% present (`present`/`total`)" line (or "No sessions recorded yet" when `totalCount == 0`), and a small percentage bar. Stats are computed **once per `refresh()` call** (a load-once pattern, like `getDeleteImpact` elsewhere in this codebase) rather than as a continuously-recomputing `Flow`, since the underlying DAO count queries are plain `suspend` functions, not reactive ones; a refresh icon in the top bar lets the user manually recompute after recording new attendance. Tapping a row navigates to the existing `StudentDetail`/`LessonDetail` screens via the callbacks `StatisticsNavGraph.kt` already had wired for students (Milestone 4) plus a newly added `onLessonClick` (the only navigation-graph change this milestone needed).
+- **Visualization choice**: a hand-rolled percentage bar (`Box` background track + a `fillMaxWidth(fraction)` filled `Box`) instead of Material3's `LinearProgressIndicator` or a charting library — a stable, dependency-free "simple visualization" per the prompt's §H suggestion ("bar chart or percentage cards... avoid heavy dependencies if not needed"), consistent with this project's low-risk-dependency pattern (e.g. the Calendar milestone's manual month grid instead of `LazyVerticalGrid`).
+- **Tests added**: `getStudentAttendanceStats`/`getLessonAttendanceStats` cases (including the zero-records → `0f` rate case) added to `AttendanceRepositoryImplTest`; a `getAll()` passthrough case added to `LessonRepositoryImplTest`; new `StatisticsViewModelTest` (loads and combines both stat lists on init, tab switching).
 
 ## Milestone 11 notes (Search & filter)
 

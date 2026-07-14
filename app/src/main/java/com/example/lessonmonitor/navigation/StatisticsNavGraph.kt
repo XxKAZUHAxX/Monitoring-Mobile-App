@@ -10,7 +10,8 @@ fun NavGraphBuilder.statisticsGraph(navController: NavHostController) {
     navigation(startDestination = Routes.STATISTICS, route = Routes.STATISTICS_GRAPH) {
         composable(Routes.STATISTICS) {
             StatisticsScreen(
-                onStudentClick = { studentId -> navController.navigate(Routes.studentDetail(studentId)) }
+                onStudentClick = { studentId -> navController.navigate(Routes.studentDetail(studentId)) },
+                onLessonClick = { lessonId -> navController.navigate(Routes.lessonDetail(lessonId)) }
             )
         }
     }

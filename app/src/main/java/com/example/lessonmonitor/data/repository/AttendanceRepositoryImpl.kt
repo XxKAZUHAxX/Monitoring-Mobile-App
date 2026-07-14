@@ -7,6 +7,7 @@ import com.example.lessonmonitor.data.local.entity.AttendanceRecordEntity
 import com.example.lessonmonitor.data.local.entity.AttendanceSessionEntity
 import com.example.lessonmonitor.data.local.entity.AttendanceStatus
 import com.example.lessonmonitor.domain.repository.AttendanceRepository
+import com.example.lessonmonitor.domain.repository.AttendanceStats
 import com.example.lessonmonitor.domain.repository.CalendarSessionEntry
 import com.example.lessonmonitor.domain.repository.StudentAttendanceHistoryEntry
 import kotlinx.coroutines.flow.Flow
@@ -79,4 +80,14 @@ class AttendanceRepositoryImpl @Inject constructor(
                 CalendarSessionEntry(session, lessonTitleById[session.lessonId] ?: "Unknown lesson")
             }
         }
+
+    override suspend fun getStudentAttendanceStats(studentId: Long): AttendanceStats = AttendanceStats(
+        presentCount = attendanceRecordDao.countPresentForStudent(studentId),
+        totalCount = attendanceRecordDao.countForStudent(studentId)
+    )
+
+    override suspend fun getLessonAttendanceStats(lessonId: Long): AttendanceStats = AttendanceStats(
+        presentCount = attendanceRecordDao.countPresentForLesson(lessonId),
+        totalCount = attendanceRecordDao.countForLesson(lessonId)
+    )
 }
