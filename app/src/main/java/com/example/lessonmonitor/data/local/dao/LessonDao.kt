@@ -29,6 +29,10 @@ interface LessonDao {
     @Insert
     suspend fun insert(lesson: LessonEntity): Long
 
+    /** Bulk-restore for the JSON backup snapshot (PLAN.md §7 milestone 13). Table is cleared first via `AppDatabase.clearAllTables()`. */
+    @Insert
+    suspend fun insertAll(lessons: List<LessonEntity>)
+
     @Update
     suspend fun update(lesson: LessonEntity)
 

@@ -4,12 +4,14 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /**
  * One row per enrolled student per session. References `studentId` directly
  * (not `enrollmentId`) so a student's attendance history survives even if
  * they're later removed from the lesson's roster — see PLAN.md §3, roadblock #5.
  */
+@Serializable
 @Entity(
     tableName = "attendance_records",
     foreignKeys = [

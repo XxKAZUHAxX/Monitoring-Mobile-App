@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /**
  * One row per lesson *occurrence* (a single date). Recurring lessons generate
@@ -12,6 +13,7 @@ import androidx.room.PrimaryKey
  * The unique index makes generation idempotent — re-running the generator
  * for a date that already has a session is a no-op.
  */
+@Serializable
 @Entity(
     tableName = "attendance_sessions",
     foreignKeys = [

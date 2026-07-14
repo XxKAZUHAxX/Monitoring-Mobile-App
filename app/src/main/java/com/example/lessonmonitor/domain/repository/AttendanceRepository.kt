@@ -38,6 +38,9 @@ interface AttendanceRepository {
 
     /** Statistics dashboard (PLAN.md §7 milestone 12): present-vs-total across every session for one lesson. */
     suspend fun getLessonAttendanceStats(lessonId: Long): AttendanceStats
+
+    /** CSV export scope (PLAN.md §7 milestone 13): one row per (session, student) attendance record for a lesson, newest session first. */
+    suspend fun getExportRowsForLesson(lessonId: Long): List<LessonExportRow>
 }
 
 data class StudentAttendanceHistoryEntry(
@@ -56,3 +59,10 @@ data class AttendanceStats(val presentCount: Int, val totalCount: Int) {
     /** 0f (not NaN) when there are no records yet, so the UI can show "0%" instead of crashing. */
     val presentRate: Float get() = if (totalCount == 0) 0f else presentCount.toFloat() / totalCount
 }
+
+data class LessonExportRow(
+    val sessionDate: Long,
+    val studentName: String,
+    val status: AttendanceStatus,
+    val absenceReason: String?
+)

@@ -3,15 +3,18 @@ package com.example.lessonmonitor.data.repository
 import com.example.lessonmonitor.data.local.dao.AttendanceRecordDao
 import com.example.lessonmonitor.data.local.dao.AttendanceSessionDao
 import com.example.lessonmonitor.data.local.dao.LessonDao
+import com.example.lessonmonitor.data.local.dao.StudentDao
 import com.example.lessonmonitor.data.local.entity.AttendanceRecordEntity
 import com.example.lessonmonitor.data.local.entity.AttendanceSessionEntity
 import com.example.lessonmonitor.data.local.entity.AttendanceStatus
 import com.example.lessonmonitor.domain.repository.AttendanceRepository
 import com.example.lessonmonitor.domain.repository.AttendanceStats
 import com.example.lessonmonitor.domain.repository.CalendarSessionEntry
+import com.example.lessonmonitor.domain.repository.LessonExportRow
 import com.example.lessonmonitor.domain.repository.StudentAttendanceHistoryEntry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,7 +22,8 @@ import javax.inject.Singleton
 class AttendanceRepositoryImpl @Inject constructor(
     private val attendanceSessionDao: AttendanceSessionDao,
     private val attendanceRecordDao: AttendanceRecordDao,
-    private val lessonDao: LessonDao
+    private val lessonDao: LessonDao,
+    private val studentDao: StudentDao
 ) : AttendanceRepository {
 
     override fun getSessionsForLesson(lessonId: Long): Flow<List<AttendanceSessionEntity>> =
@@ -90,4 +94,23 @@ class AttendanceRepositoryImpl @Inject constructor(
         presentCount = attendanceRecordDao.countPresentForLesson(lessonId),
         totalCount = attendanceRecordDao.countForLesson(lessonId)
     )
+
+    override suspend fun getExportRowsForLesson(lessonId: Long): List<LessonExportRow> {
+        val sessions = attendanceSessionDao.getForLesson(lessonId).first()
+        val sessionsById = sessions.associateBy { it.id }
+        val students = studentDao.getAll().first()
+        val studentNameById = students.associateBy({ it.id }, { it.name })
+        val records = attendanceRecordDao.getAllForLesson(lessonId)
+        return records
+            .mapNotNull { record ->
+                val session = sessionsById[record.sessionId] ?: return@mapNotNull null
+                LessonExportRow(
+                    sessionDate = session.sessionDate,
+                    studentName = studentNameById[record.studentId] ?: "Unknown student",
+                    status = record.status,
+                    absenceReason = record.absenceReason
+                )
+            }
+            .sortedWith(compareBy({ it.sessionDate }, { it.studentName }))
+    }
 }

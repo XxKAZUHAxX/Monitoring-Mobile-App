@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /**
  * Lesson <-> Student join table. Removing a student from a roster should set
@@ -14,6 +15,7 @@ import androidx.room.PrimaryKey
  * directly, so deactivating/removing an enrollment never deletes history
  * (see PLAN.md §3, roadblock #5).
  */
+@Serializable
 @Entity(
     tableName = "enrollments",
     foreignKeys = [

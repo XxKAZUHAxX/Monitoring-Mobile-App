@@ -3,10 +3,12 @@ package com.example.lessonmonitor.data.repository
 import com.example.lessonmonitor.data.local.dao.AttendanceRecordDao
 import com.example.lessonmonitor.data.local.dao.AttendanceSessionDao
 import com.example.lessonmonitor.data.local.dao.LessonDao
+import com.example.lessonmonitor.data.local.dao.StudentDao
 import com.example.lessonmonitor.data.local.entity.AttendanceRecordEntity
 import com.example.lessonmonitor.data.local.entity.AttendanceSessionEntity
 import com.example.lessonmonitor.data.local.entity.AttendanceStatus
 import com.example.lessonmonitor.data.local.entity.LessonEntity
+import com.example.lessonmonitor.data.local.entity.StudentEntity
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -23,12 +25,13 @@ class AttendanceRepositoryImplTest {
     private val attendanceSessionDao: AttendanceSessionDao = mockk()
     private val attendanceRecordDao: AttendanceRecordDao = mockk()
     private val lessonDao: LessonDao = mockk()
+    private val studentDao: StudentDao = mockk()
 
     private lateinit var repository: AttendanceRepositoryImpl
 
     @Before
     fun setUp() {
-        repository = AttendanceRepositoryImpl(attendanceSessionDao, attendanceRecordDao, lessonDao)
+        repository = AttendanceRepositoryImpl(attendanceSessionDao, attendanceRecordDao, lessonDao, studentDao)
     }
 
     @Test
@@ -154,5 +157,45 @@ class AttendanceRepositoryImplTest {
         assertEquals(3, stats.presentCount)
         assertEquals(12, stats.totalCount)
         assertEquals(0.25f, stats.presentRate)
+    }
+
+    @Test
+    fun `getExportRowsForLesson joins records with their session date and student name, sorted by date then name`() = runTest {
+        val olderSession = AttendanceSessionEntity(id = 1L, lessonId = 4L, sessionDate = 19000L, createdAt = 1L)
+        val newerSession = AttendanceSessionEntity(id = 2L, lessonId = 4L, sessionDate = 19100L, createdAt = 1L)
+        every { attendanceSessionDao.getForLesson(4L) } returns flowOf(listOf(olderSession, newerSession))
+        every { studentDao.getAll() } returns flowOf(
+            listOf(
+                StudentEntity(id = 1L, name = "Bea", createdAt = 1L, updatedAt = 1L),
+                StudentEntity(id = 2L, name = "Ada", createdAt = 1L, updatedAt = 1L)
+            )
+        )
+        coEvery { attendanceRecordDao.getAllForLesson(4L) } returns listOf(
+            AttendanceRecordEntity(id = 1L, sessionId = 2L, studentId = 2L, status = AttendanceStatus.ABSENT, absenceReason = "Sick", recordedAt = 1L),
+            AttendanceRecordEntity(id = 2L, sessionId = 1L, studentId = 1L, status = AttendanceStatus.PRESENT, recordedAt = 1L)
+        )
+
+        val rows = repository.getExportRowsForLesson(4L)
+
+        assertEquals(2, rows.size)
+        assertEquals(19000L, rows[0].sessionDate)
+        assertEquals("Bea", rows[0].studentName)
+        assertEquals(AttendanceStatus.PRESENT, rows[0].status)
+        assertEquals(19100L, rows[1].sessionDate)
+        assertEquals("Ada", rows[1].studentName)
+        assertEquals("Sick", rows[1].absenceReason)
+    }
+
+    @Test
+    fun `getExportRowsForLesson drops records whose session can't be found`() = runTest {
+        every { attendanceSessionDao.getForLesson(4L) } returns flowOf(emptyList())
+        every { studentDao.getAll() } returns flowOf(emptyList())
+        coEvery { attendanceRecordDao.getAllForLesson(4L) } returns listOf(
+            AttendanceRecordEntity(id = 1L, sessionId = 99L, studentId = 1L, status = AttendanceStatus.PRESENT, recordedAt = 1L)
+        )
+
+        val rows = repository.getExportRowsForLesson(4L)
+
+        assertEquals(emptyList<Any>(), rows)
     }
 }

@@ -22,6 +22,10 @@ interface CategoryDao {
     @Insert
     suspend fun insert(category: CategoryEntity): Long
 
+    /** Bulk-restore for the JSON backup snapshot (PLAN.md §7 milestone 13). Table is cleared first via `AppDatabase.clearAllTables()`. */
+    @Insert
+    suspend fun insertAll(categories: List<CategoryEntity>)
+
     @Update
     suspend fun update(category: CategoryEntity)
 

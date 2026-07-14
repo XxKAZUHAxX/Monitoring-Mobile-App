@@ -32,6 +32,10 @@ interface AttendanceSessionDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(session: AttendanceSessionEntity): Long
 
+    /** Bulk-restore for the JSON backup snapshot (PLAN.md §7 milestone 13). Table is cleared first via `AppDatabase.clearAllTables()`. */
+    @Insert
+    suspend fun insertAll(sessions: List<AttendanceSessionEntity>)
+
     @Update
     suspend fun update(session: AttendanceSessionEntity)
 

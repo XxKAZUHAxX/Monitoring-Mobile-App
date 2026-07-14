@@ -2,8 +2,10 @@ package com.example.lessonmonitor.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /** Global, reusable across lessons/categories — see PLAN.md §2. */
+@Serializable
 @Entity(tableName = "students")
 data class StudentEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,

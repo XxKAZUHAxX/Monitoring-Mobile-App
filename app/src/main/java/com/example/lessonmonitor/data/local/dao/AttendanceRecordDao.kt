@@ -17,6 +17,14 @@ interface AttendanceRecordDao {
     @Query("SELECT * FROM attendance_records WHERE studentId = :studentId ORDER BY recordedAt DESC")
     fun getForStudent(studentId: Long): Flow<List<AttendanceRecordEntity>>
 
+    /** Full table, for the JSON backup snapshot (PLAN.md §7 milestone 13). */
+    @Query("SELECT * FROM attendance_records")
+    fun getAll(): Flow<List<AttendanceRecordEntity>>
+
+    /** CSV export scope (PLAN.md §7 milestone 13): every record for one lesson's sessions. */
+    @Query("SELECT * FROM attendance_records WHERE sessionId IN (SELECT id FROM attendance_sessions WHERE lessonId = :lessonId)")
+    suspend fun getAllForLesson(lessonId: Long): List<AttendanceRecordEntity>
+
     /** One row per (sessionId, studentId) — marking attendance again overwrites the prior value. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(record: AttendanceRecordEntity): Long
@@ -59,4 +67,8 @@ interface AttendanceRecordDao {
         """
     )
     suspend fun countPresentForLesson(lessonId: Long): Int
+
+    /** Bulk-restore for the JSON backup snapshot (PLAN.md §7 milestone 13). Table is cleared first via `AppDatabase.clearAllTables()`. */
+    @Insert
+    suspend fun insertAll(records: List<AttendanceRecordEntity>)
 }

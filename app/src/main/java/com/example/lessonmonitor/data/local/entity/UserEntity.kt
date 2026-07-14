@@ -2,6 +2,7 @@ package com.example.lessonmonitor.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /**
  * Single local user profile row (Phase 1 is local-only, single-profile — see
@@ -10,6 +11,7 @@ import androidx.room.PrimaryKey
  * (Keystore-backed), wired up in the "User account" milestone. This table
  * only tracks non-sensitive profile state.
  */
+@Serializable
 @Entity(tableName = "user")
 data class UserEntity(
     @PrimaryKey val id: Long = SINGLETON_ID,

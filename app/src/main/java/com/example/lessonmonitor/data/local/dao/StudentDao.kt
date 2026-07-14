@@ -22,6 +22,10 @@ interface StudentDao {
     @Insert
     suspend fun insert(student: StudentEntity): Long
 
+    /** Bulk-restore for the JSON backup snapshot (PLAN.md §7 milestone 13). Table is cleared first via `AppDatabase.clearAllTables()`. */
+    @Insert
+    suspend fun insertAll(students: List<StudentEntity>)
+
     @Update
     suspend fun update(student: StudentEntity)
 

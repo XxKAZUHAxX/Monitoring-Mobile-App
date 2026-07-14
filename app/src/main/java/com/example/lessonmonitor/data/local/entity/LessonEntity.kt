@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /**
  * `facilitatorName`/`place` are the *default* values for this lesson;
@@ -11,6 +12,7 @@ import androidx.room.PrimaryKey
  * occurrence (e.g. a substitute facilitator on one date) — see PLAN.md §1
  * assumption #2.
  */
+@Serializable
 @Entity(
     tableName = "lessons",
     foreignKeys = [

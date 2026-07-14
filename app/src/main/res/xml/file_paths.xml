@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Exposes the app-private cache "exports" subfolder (CSV attendance exports
+  and JSON backup snapshots, both written by data/export/*) to the share
+  sheet via FileProvider — PLAN.md §6 tech decision: "shared via FileProvider
+  + ACTION_SEND", not a world-readable file.
+-->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="exports" path="exports/" />
+</paths>
