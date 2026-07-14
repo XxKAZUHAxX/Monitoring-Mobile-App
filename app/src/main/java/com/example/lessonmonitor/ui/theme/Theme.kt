@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import com.example.lessonmonitor.data.datastore.ThemeMode
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -23,16 +24,27 @@ private val LightColorScheme = lightColorScheme(
 )
 
 /**
- * App theme. `darkTheme` defaults to the system setting; the Dark Mode
- * milestone will thread a DataStore-backed override preference through this
- * parameter instead of relying solely on `isSystemInDarkTheme()`.
+ * App theme. [themeMode] controls light/dark:
+ * - [ThemeMode.SYSTEM] — follows the device's system setting (the default).
+ * - [ThemeMode.DARK]  — always dark.
+ * - [ThemeMode.LIGHT] — always light.
+ *
+ * The caller ([MainActivity]) reads [ThemeMode] from [ThemePreferences] (a
+ * DataStore-backed [kotlinx.coroutines.flow.Flow]) and passes it here so the
+ * entire tree re-composes when the user changes the preference in Settings.
  */
 @Composable
 fun LessonMonitorTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
+    val darkTheme = when (themeMode) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.DARK -> true
+        ThemeMode.LIGHT -> false
+    }
+
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current

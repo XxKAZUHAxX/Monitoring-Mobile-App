@@ -7,19 +7,28 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.example.lessonmonitor.data.datastore.ThemeMode
+import com.example.lessonmonitor.data.datastore.ThemePreferences
 import com.example.lessonmonitor.navigation.LessonMonitorNavHost
 import com.example.lessonmonitor.ui.theme.LessonMonitorTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * Extends `FragmentActivity` (not plain `ComponentActivity`) because
  * androidx.biometric's `BiometricPrompt` requires one — see
  * `ui/auth/BiometricAuth.kt` and PLAN.md §6. `FragmentActivity` is itself a
  * `ComponentActivity`, so `setContent`/`enableEdgeToEdge` still apply.
+ *
+ * Theme mode is read from [ThemePreferences] (DataStore) and passed to
+ * [LessonMonitorTheme] so the user's manual override (set in Settings)
+ * controls the light/dark appearance.
  *
  * Deep-link intents (from notification taps) carry a
  * `lessonmonitor://lesson/{lessonId}/session/{sessionId}` URI and are
@@ -29,6 +38,8 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
 
+    @Inject lateinit var themePreferences: ThemePreferences
+
     /** Set by [LessonMonitorNavHost] so [onNewIntent] can forward deep links. */
     private val navControllerRef = mutableStateOf<NavHostController?>(null)
 
@@ -36,6 +47,8 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val themeMode by themePreferences.themeMode.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
+
             // Forward the launch intent once the NavController is ready.
             val launchIntent = intent
             LaunchedEffect(navControllerRef.value, launchIntent) {
@@ -44,7 +57,7 @@ class MainActivity : FragmentActivity() {
                     nc.handleDeepLink(launchIntent)
                 }
             }
-            LessonMonitorTheme {
+            LessonMonitorTheme(themeMode = themeMode) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     LessonMonitorNavHost(
                         onNavControllerReady = { navControllerRef.value = it }
