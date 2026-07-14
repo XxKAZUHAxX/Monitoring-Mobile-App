@@ -9,14 +9,18 @@ import kotlinx.coroutines.flow.Flow
  * PLAN.md §7 milestone 6). Wraps `LessonDao` only for now — the Phase-2
  * cloud-sync swap point per PLAN.md §3 roadblock #6.
  *
- * Rolling-window recurring *session* generation from a recurring lesson's
- * config lands in the Recurring/Scheduled Lessons milestone (#9); this
- * repository only persists the lesson template itself.
+ * This repository only persists the lesson template itself; turning a
+ * recurring lesson's config into actual `AttendanceSession` rows in a
+ * rolling window is `domain.schedule.RecurringSessionGenerator`'s job
+ * (milestone #9), which reads recurring lessons via [getAllRecurring].
  */
 interface LessonRepository {
     fun getAllByCategory(categoryId: Long): Flow<List<LessonEntity>>
 
     fun getById(lessonId: Long): Flow<LessonEntity?>
+
+    /** Feeds the rolling-window session generator (milestone #9, `RecurringSessionGenerator`). */
+    suspend fun getAllRecurring(): List<LessonEntity>
 
     suspend fun create(
         categoryId: Long,

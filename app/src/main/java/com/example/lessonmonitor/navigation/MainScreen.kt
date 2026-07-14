@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -22,9 +23,14 @@ import androidx.navigation.compose.rememberNavController
  * tab keeps its own back stack/state when switching tabs — see PLAN.md §4.
  * [rootNavController] is threaded through to the Settings tab so "log out"
  * can pop all the way back to the auth graph.
+ *
+ * [mainScreenViewModel] has no UI state of its own — obtaining it via
+ * `hiltViewModel()` here just triggers its one-time recurring-session
+ * generation side effect (see [MainScreenViewModel]) exactly once per
+ * app-open, scoped to this composable's back stack entry.
  */
 @Composable
-fun MainScreen(rootNavController: NavHostController) {
+fun MainScreen(rootNavController: NavHostController, mainScreenViewModel: MainScreenViewModel = hiltViewModel()) {
     val innerNavController = rememberNavController()
 
     Scaffold(

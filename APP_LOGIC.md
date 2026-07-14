@@ -2,7 +2,19 @@
 
 > This file is updated after **every** milestone commit. It describes how the app actually works (or, at this stage, how it is currently planned to work before any code exists). See `PLAN.md` for the frozen upfront plan and rationale; this file tracks current reality and any deviations from that plan as implementation proceeds.
 
-Last updated: Milestone 8 — Feature: Student profiles (profile CRUD, photo, cross-lesson history).
+Last updated: Milestone 9 — Feature: Recurring/scheduled lessons (rolling window generation).
+
+## Milestone 9 notes (Recurring/scheduled lessons)
+
+- **`LessonRepository` gained `getAllRecurring()`**, a thin passthrough to the `LessonDao.getAllRecurring()` query that already existed since Milestone 3 (`WHERE isRecurring = 1`) but had no caller until now.
+- **New `domain/schedule/RecurringSessionGenerator.kt`** (a plain `@Singleton` class, not a repository — it only orchestrates two existing repositories, so it doesn't belong behind its own domain interface): `generateUpcomingSessions(today = LocalDate.now(), windowDays = 60)` reads every recurring lesson, then for each one clips the occurrence range to `[max(lesson.startDate, today), min(lesson.endDate ?: windowEnd, windowEnd)]` and walks it day-by-day, calling `AttendanceRepository.createSession(lessonId, epochDay)` for any date the lesson's rule actually occurs on:
+  - `DAILY` → every day in range.
+  - `WEEKLY` / `CUSTOM_DAYS` → only days whose ISO day-of-week (1=Monday..7=Sunday) appears in the CSV `recurrenceDaysOfWeek` field (both recurrence types share that same field, per `LessonEntity`'s existing doc comment — `WEEKLY` is really just "custom days" with typically one day chosen).
+  - `NONE` → generates nothing (defensive; a lesson shouldn't have `isRecurring = true` with `recurrenceType = NONE`, but the generator doesn't assume that invariant holds).
+  - Never re-creates or backfills sessions before `today` — past occurrences are the Lesson Detail "Sessions" tab's manual-entry territory (Milestone 7), not this generator's.
+  - Relies entirely on `AttendanceRepository.createSession`'s existing idempotent (lessonId, sessionDate) insert (built in Milestone 7) — calling `generateUpcomingSessions()` repeatedly (e.g. every app open) is always safe and never creates duplicate sessions.
+- **Trigger point**: PLAN.md §1 assumption #4 says the window should recompute "whenever the app opens, the Calendar screen is opened, or the user scrolls the calendar past the current window edge." Since the Calendar screen (`CalendarScreen`/`DayAgendaScreen`) is still a placeholder (a later milestone), only the first trigger — **app open** — is wired now: new `navigation/MainScreenViewModel.kt` (`@HiltViewModel`) calls `generateUpcomingSessions()` once from its `init` block, and `MainScreen.kt` (the single composable every logged-in user always passes through, hosting the bottom-nav shell) now obtains one via `hiltViewModel()`. The ViewModel has no UI state of its own — it exists purely to scope this one-time side effect to "once per app open" (a fresh `MainScreenViewModel` instance is created each time the auth graph navigates to `Routes.MAIN`). When the Calendar milestone is implemented, it can call the same `RecurringSessionGenerator` directly (e.g. on screen entry or when scrolling near the window edge) since re-running it is always idempotent.
+- **Tests added**: `RecurringSessionGeneratorTest` (daily/weekly/custom-days occurrence matching, start-date-after-window-end producing nothing, end-date clipping the range, `NONE` producing nothing) and a `getAllRecurring` passthrough case added to `LessonRepositoryImplTest`.
 
 ## Milestone 8 notes (Student profiles)
 

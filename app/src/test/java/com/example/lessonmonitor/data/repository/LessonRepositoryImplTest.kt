@@ -99,4 +99,23 @@ class LessonRepositoryImplTest {
 
         coVerify { lessonDao.delete(lesson) }
     }
+
+    @Test
+    fun `getAllRecurring delegates to the DAO`() = runTest {
+        val recurring = LessonEntity(
+            id = 5L,
+            categoryId = 1L,
+            title = "Algebra",
+            isRecurring = true,
+            recurrenceType = RecurrenceType.WEEKLY,
+            startDate = 19000L,
+            createdAt = 1L,
+            updatedAt = 1L
+        )
+        coEvery { lessonDao.getAllRecurring() } returns listOf(recurring)
+
+        val result = repository.getAllRecurring()
+
+        assertEquals(listOf(recurring), result)
+    }
 }

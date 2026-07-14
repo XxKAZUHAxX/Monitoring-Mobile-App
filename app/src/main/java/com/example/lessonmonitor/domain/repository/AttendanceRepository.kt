@@ -6,13 +6,13 @@ import com.example.lessonmonitor.data.local.entity.AttendanceStatus
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Per-occurrence attendance tracking (PLAN.md §7 milestone 7). Sessions here
- * are created on demand (manually, from the Lesson Detail "Sessions" tab);
- * automatically generating them from a recurring lesson's rule into a
- * rolling 60-day window (PLAN.md §1 assumption #4) is deferred to the
- * Recurring/Scheduled Lessons milestone (#9) — this repository only needs
- * [AttendanceSessionDao.insert]'s existing idempotent (lessonId, sessionDate)
- * uniqueness to make that later generator a drop-in caller of [createSession].
+ * Per-occurrence attendance tracking (PLAN.md §7 milestone 7). Sessions can
+ * be created manually (from the Lesson Detail "Sessions" tab) or in bulk by
+ * `domain.schedule.RecurringSessionGenerator` (milestone #9), which walks a
+ * recurring lesson's rule across a rolling 60-day window (PLAN.md §1
+ * assumption #4) and calls [createSession] once per occurrence date —
+ * [AttendanceSessionDao.insert]'s idempotent (lessonId, sessionDate)
+ * uniqueness means re-running the generator is always safe.
  */
 interface AttendanceRepository {
     fun getSessionsForLesson(lessonId: Long): Flow<List<AttendanceSessionEntity>>
