@@ -8,8 +8,11 @@ import com.example.lessonmonitor.data.local.entity.LessonEntity
 import com.example.lessonmonitor.data.local.entity.RecurrenceType
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -117,5 +120,15 @@ class LessonRepositoryImplTest {
         val result = repository.getAllRecurring()
 
         assertEquals(listOf(recurring), result)
+    }
+
+    @Test
+    fun `search delegates to the DAO`() = runTest {
+        val lesson = LessonEntity(id = 1L, categoryId = 1L, title = "Algebra", startDate = 19000L, createdAt = 1L, updatedAt = 1L)
+        every { lessonDao.search("alg") } returns flowOf(listOf(lesson))
+
+        val result = repository.search("alg").first()
+
+        assertEquals(listOf(lesson), result)
     }
 }

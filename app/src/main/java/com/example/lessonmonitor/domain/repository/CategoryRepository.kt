@@ -13,6 +13,9 @@ interface CategoryRepository {
 
     fun getById(categoryId: Long): Flow<CategoryEntity?>
 
+    /** Backs the global Search screen (PLAN.md §1 assumption #7, milestone #11). */
+    fun search(query: String): Flow<List<CategoryEntity>>
+
     suspend fun create(name: String, description: String?, color: Int?, icon: String?): Long
 
     suspend fun update(category: CategoryEntity)

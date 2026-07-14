@@ -72,4 +72,23 @@ class LessonsListViewModelTest {
         coVerify { lessonRepository.delete(sampleLesson) }
         assertNull(viewModel.uiState.value.pendingDelete)
     }
+
+    @Test
+    fun `onFilterChange narrows the lesson list to recurring or one-off without a new query`() {
+        val recurringLesson = sampleLesson.copy(id = 2L, isRecurring = true)
+        coEvery { lessonRepository.getAllByCategory(3L) } returns flowOf(listOf(sampleLesson, recurringLesson))
+        val viewModel = LessonsListViewModel(lessonRepository)
+        viewModel.load(3L)
+
+        viewModel.onFilterChange(LessonsListViewModel.LessonFilter.RECURRING)
+        assertEquals(listOf(recurringLesson), viewModel.uiState.value.lessons)
+
+        viewModel.onFilterChange(LessonsListViewModel.LessonFilter.ONE_OFF)
+        assertEquals(listOf(sampleLesson), viewModel.uiState.value.lessons)
+
+        viewModel.onFilterChange(LessonsListViewModel.LessonFilter.ALL)
+        assertEquals(listOf(sampleLesson, recurringLesson), viewModel.uiState.value.lessons)
+
+        coVerify(exactly = 1) { lessonRepository.getAllByCategory(3L) }
+    }
 }

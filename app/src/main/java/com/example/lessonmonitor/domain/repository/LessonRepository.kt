@@ -22,6 +22,9 @@ interface LessonRepository {
     /** Feeds the rolling-window session generator (milestone #9, `RecurringSessionGenerator`). */
     suspend fun getAllRecurring(): List<LessonEntity>
 
+    /** Global (cross-category) title search, backing the Search screen (PLAN.md §1 assumption #7, milestone #11). */
+    fun search(query: String): Flow<List<LessonEntity>>
+
     suspend fun create(
         categoryId: Long,
         title: String,

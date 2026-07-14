@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -48,6 +49,27 @@ fun StudentPickerScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(16.dp)
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = uiState.filter == StudentPickerViewModel.RosterFilter.ALL,
+                    onClick = { viewModel.onFilterChange(StudentPickerViewModel.RosterFilter.ALL) },
+                    label = { Text("All") }
+                )
+                FilterChip(
+                    selected = uiState.filter == StudentPickerViewModel.RosterFilter.ENROLLED,
+                    onClick = { viewModel.onFilterChange(StudentPickerViewModel.RosterFilter.ENROLLED) },
+                    label = { Text("Enrolled") }
+                )
+                FilterChip(
+                    selected = uiState.filter == StudentPickerViewModel.RosterFilter.NOT_ENROLLED,
+                    onClick = { viewModel.onFilterChange(StudentPickerViewModel.RosterFilter.NOT_ENROLLED) },
+                    label = { Text("Not enrolled") }
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),

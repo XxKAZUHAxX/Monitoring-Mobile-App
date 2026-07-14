@@ -2,7 +2,17 @@
 
 > This file is updated after **every** milestone commit. It describes how the app actually works (or, at this stage, how it is currently planned to work before any code exists). See `PLAN.md` for the frozen upfront plan and rationale; this file tracks current reality and any deviations from that plan as implementation proceeds.
 
-Last updated: Milestone 10 — Feature: Calendar/schedule view.
+Last updated: Milestone 11 — Feature: Search & filter.
+
+## Milestone 11 notes (Search & filter)
+
+- **`CategoryRepository`/`LessonRepository` gained `search(query)`**, thin passthroughs to the DAO `search()` queries that already existed since Milestone 3 (`CategoryDao`/`LessonDao`) but had no callers until now. `LessonRepository.search` is deliberately global (not scoped to a category), matching the Search screen's "global search across categories/lessons/students" requirement (PLAN.md §1 assumption #7). `StudentRepository.search` already existed (built in Milestone 7 for `StudentPicker`).
+- **`SearchScreen`/`SearchViewModel`** is now real: one text field feeds `onQueryChange`, which cancels any in-flight search and — if the query is non-blank — launches a `combine` of all three repositories' `search(query)` flows into grouped `categoryResults`/`lessonResults`/`studentResults` lists (a blank query clears results immediately without querying, so the initial "type to search" state never hits the DB). Results render as three optional sections (Categories/Lessons/Students), each row navigating to its matching detail screen via the callbacks the nav graph already wired since Milestone 4 (`DashboardNavGraph.kt` needed no changes — `SearchScreen`'s public signature only gained a defaulted `viewModel` parameter).
+- **Inline filter chips added to two existing lists** (PLAN.md §1 assumption #7's other half), both **client-side only** (filtering the already-loaded in-memory list, no new DB queries) to keep this low-risk:
+  - `LessonsListScreen`/`LessonsListViewModel`: All / Recurring / One-off chips, filtering on `LessonEntity.isRecurring`. The ViewModel keeps the unfiltered `allLessons` list privately so switching filters is instant and doesn't require re-subscribing to the category's `Flow`.
+  - `StudentPickerScreen`/`StudentPickerViewModel`: All / Enrolled / Not enrolled chips, filtering on the already-computed `StudentRow.enrolled` flag (same "keep the unfiltered list privately" approach via `allRows`).
+  - The prompt's other suggested filter dimensions ("date range", "attendance status", e.g. "lessons with any absences this week") were intentionally **not** implemented this milestone — they'd need new aggregate queries rather than being derivable from data already in memory, and PLAN.md §1 assumption #7 only commits to "inline filter chips on Lessons/Students lists" without specifying which dimension. Noted here as a scope decision, not a deviation.
+- **Tests added**: `search()` passthrough cases added to `CategoryRepositoryImplTest`/`LessonRepositoryImplTest`; new `SearchViewModelTest` (blank query short-circuits without querying, combines all three result lists, clearing resets them); filter cases added to `LessonsListViewModelTest`/`StudentPickerViewModelTest`.
 
 ## Milestone 10 notes (Calendar/schedule view)
 

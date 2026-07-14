@@ -93,4 +93,19 @@ class StudentPickerViewModelTest {
         coVerify { enrollmentRepository.enroll(5L, 3L) }
         assertEquals("", viewModel.uiState.value.quickAddName)
     }
+
+    @Test
+    fun `onFilterChange narrows the roster to enrolled or not-enrolled without a new query`() {
+        val viewModel = buildViewModel()
+        viewModel.load(5L)
+
+        viewModel.onFilterChange(StudentPickerViewModel.RosterFilter.ENROLLED)
+        assertEquals(listOf(1L), viewModel.uiState.value.students.map { it.student.id })
+
+        viewModel.onFilterChange(StudentPickerViewModel.RosterFilter.NOT_ENROLLED)
+        assertEquals(listOf(2L), viewModel.uiState.value.students.map { it.student.id })
+
+        viewModel.onFilterChange(StudentPickerViewModel.RosterFilter.ALL)
+        assertEquals(listOf(1L, 2L), viewModel.uiState.value.students.map { it.student.id })
+    }
 }

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,25 +54,48 @@ fun LessonsListScreen(
             }
         }
     ) { innerPadding ->
-        if (uiState.lessons.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
-                contentAlignment = Alignment.Center
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("No lessons yet. Tap + to add one.")
+                FilterChip(
+                    selected = uiState.filter == LessonsListViewModel.LessonFilter.ALL,
+                    onClick = { viewModel.onFilterChange(LessonsListViewModel.LessonFilter.ALL) },
+                    label = { Text("All") }
+                )
+                FilterChip(
+                    selected = uiState.filter == LessonsListViewModel.LessonFilter.RECURRING,
+                    onClick = { viewModel.onFilterChange(LessonsListViewModel.LessonFilter.RECURRING) },
+                    label = { Text("Recurring") }
+                )
+                FilterChip(
+                    selected = uiState.filter == LessonsListViewModel.LessonFilter.ONE_OFF,
+                    onClick = { viewModel.onFilterChange(LessonsListViewModel.LessonFilter.ONE_OFF) },
+                    label = { Text("One-off") }
+                )
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(uiState.lessons, key = { it.id }) { lesson ->
-                    LessonRow(
-                        lesson = lesson,
-                        onClick = { onLessonClick(lesson.id) },
-                        onDeleteClick = { viewModel.requestDelete(lesson) }
-                    )
+
+            if (uiState.lessons.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No lessons yet. Tap + to add one.")
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(uiState.lessons, key = { it.id }) { lesson ->
+                        LessonRow(
+                            lesson = lesson,
+                            onClick = { onLessonClick(lesson.id) },
+                            onDeleteClick = { viewModel.requestDelete(lesson) }
+                        )
+                    }
                 }
             }
         }

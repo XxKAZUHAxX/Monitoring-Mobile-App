@@ -21,6 +21,8 @@ class CategoryRepositoryImpl @Inject constructor(
 
     override fun getById(categoryId: Long): Flow<CategoryEntity?> = categoryDao.getById(categoryId)
 
+    override fun search(query: String): Flow<List<CategoryEntity>> = categoryDao.search(query)
+
     override suspend fun create(name: String, description: String?, color: Int?, icon: String?): Long {
         val now = System.currentTimeMillis()
         return categoryDao.insert(

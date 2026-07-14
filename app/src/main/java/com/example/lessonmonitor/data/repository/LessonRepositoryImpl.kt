@@ -27,6 +27,8 @@ class LessonRepositoryImpl @Inject constructor(
 
     override suspend fun getAllRecurring(): List<LessonEntity> = lessonDao.getAllRecurring()
 
+    override fun search(query: String): Flow<List<LessonEntity>> = lessonDao.search(query)
+
     override suspend fun create(
         categoryId: Long,
         title: String,

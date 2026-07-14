@@ -19,8 +19,11 @@ class LessonsListViewModel @Inject constructor(
     private val lessonRepository: LessonRepository
 ) : ViewModel() {
 
+    enum class LessonFilter { ALL, RECURRING, ONE_OFF }
+
     data class UiState(
         val lessons: List<LessonEntity> = emptyList(),
+        val filter: LessonFilter = LessonFilter.ALL,
         val pendingDelete: PendingDelete? = null
     )
 
@@ -36,6 +39,9 @@ class LessonsListViewModel @Inject constructor(
     private var loadedCategoryId: Long? = null
     private var lessonsJob: Job? = null
 
+    /** All lessons for the loaded category, unfiltered — the source [onFilterChange] re-filters from. */
+    private var allLessons: List<LessonEntity> = emptyList()
+
     /** Idempotent per [categoryId] — (re)subscribes to that category's lessons only when it changes. */
     fun load(categoryId: Long) {
         if (categoryId == loadedCategoryId) return
@@ -43,9 +49,21 @@ class LessonsListViewModel @Inject constructor(
         lessonsJob?.cancel()
         lessonsJob = viewModelScope.launch {
             lessonRepository.getAllByCategory(categoryId).collect { lessons ->
-                _uiState.update { it.copy(lessons = lessons) }
+                allLessons = lessons
+                _uiState.update { it.copy(lessons = applyFilter(lessons, it.filter)) }
             }
         }
+    }
+
+    /** Client-side only (PLAN.md §1 assumption #7 "inline filter chips on Lessons/Students lists") — no new query needed. */
+    fun onFilterChange(filter: LessonFilter) {
+        _uiState.update { it.copy(filter = filter, lessons = applyFilter(allLessons, filter)) }
+    }
+
+    private fun applyFilter(lessons: List<LessonEntity>, filter: LessonFilter): List<LessonEntity> = when (filter) {
+        LessonFilter.ALL -> lessons
+        LessonFilter.RECURRING -> lessons.filter { it.isRecurring }
+        LessonFilter.ONE_OFF -> lessons.filter { !it.isRecurring }
     }
 
     fun requestDelete(lesson: LessonEntity) {

@@ -24,9 +24,12 @@ class StudentPickerViewModel @Inject constructor(
 
     data class StudentRow(val student: StudentEntity, val enrolled: Boolean)
 
+    enum class RosterFilter { ALL, ENROLLED, NOT_ENROLLED }
+
     data class UiState(
         val searchQuery: String = "",
         val students: List<StudentRow> = emptyList(),
+        val filter: RosterFilter = RosterFilter.ALL,
         val quickAddName: String = "",
         val errorMessage: String? = null
     )
@@ -36,6 +39,9 @@ class StudentPickerViewModel @Inject constructor(
 
     private val searchQuery = MutableStateFlow("")
     private var loadedLessonId: Long? = null
+
+    /** All rows for the current search query, unfiltered — the source [onFilterChange] re-filters from. */
+    private var allRows: List<StudentRow> = emptyList()
 
     /** The roster entries backing the current `enrolled` flags — needed to unenroll by [com.example.lessonmonitor.data.local.entity.EnrollmentEntity], not just studentId. */
     private var currentRoster: List<RosterEntry> = emptyList()
@@ -56,9 +62,21 @@ class StudentPickerViewModel @Inject constructor(
                 val enrolledIds = roster.map { it.student.id }.toSet()
                 students.map { student -> StudentRow(student, enrolledIds.contains(student.id)) }
             }.collect { rows ->
-                _uiState.update { it.copy(students = rows) }
+                allRows = rows
+                _uiState.update { it.copy(students = applyFilter(rows, it.filter)) }
             }
         }
+    }
+
+    /** Client-side only (PLAN.md §1 assumption #7 "inline filter chips on Lessons/Students lists") — no new query needed. */
+    fun onFilterChange(filter: RosterFilter) {
+        _uiState.update { it.copy(filter = filter, students = applyFilter(allRows, filter)) }
+    }
+
+    private fun applyFilter(rows: List<StudentRow>, filter: RosterFilter): List<StudentRow> = when (filter) {
+        RosterFilter.ALL -> rows
+        RosterFilter.ENROLLED -> rows.filter { it.enrolled }
+        RosterFilter.NOT_ENROLLED -> rows.filter { !it.enrolled }
     }
 
     fun onSearchQueryChange(value: String) {

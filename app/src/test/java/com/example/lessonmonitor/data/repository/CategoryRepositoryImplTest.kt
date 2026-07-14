@@ -6,8 +6,11 @@ import com.example.lessonmonitor.data.local.dao.CategoryDao
 import com.example.lessonmonitor.data.local.entity.CategoryEntity
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -75,5 +78,15 @@ class CategoryRepositoryImplTest {
         repository.delete(category)
 
         coVerify { categoryDao.delete(category) }
+    }
+
+    @Test
+    fun `search delegates to the DAO`() = runTest {
+        val category = CategoryEntity(id = 1L, name = "Math", createdAt = 1L, updatedAt = 1L)
+        every { categoryDao.search("mat") } returns flowOf(listOf(category))
+
+        val result = repository.search("mat").first()
+
+        assertEquals(listOf(category), result)
     }
 }
