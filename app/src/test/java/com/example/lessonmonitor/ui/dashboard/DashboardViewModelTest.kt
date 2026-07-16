@@ -34,7 +34,7 @@ class DashboardViewModelTest {
     @Test
     fun `requestDelete fetches the impact and populates pendingDelete`() {
         coEvery { categoryRepository.getAll() } returns flowOf(emptyList())
-        val impact = CategoryDeleteImpact(lessonCount = 4, sessionCount = 12, recordCount = 96)
+        val impact = CategoryDeleteImpact(lessonCount = 4, recordCount = 96)
         coEvery { categoryRepository.getDeleteImpact(1L) } returns impact
         val viewModel = DashboardViewModel(categoryRepository)
 
@@ -47,7 +47,7 @@ class DashboardViewModelTest {
     @Test
     fun `confirmDelete deletes the pending category and clears pendingDelete`() {
         coEvery { categoryRepository.getAll() } returns flowOf(emptyList())
-        val impact = CategoryDeleteImpact(lessonCount = 0, sessionCount = 0, recordCount = 0)
+        val impact = CategoryDeleteImpact(lessonCount = 0, recordCount = 0)
         coEvery { categoryRepository.getDeleteImpact(1L) } returns impact
         coEvery { categoryRepository.delete(sampleCategory) } returns Unit
         val viewModel = DashboardViewModel(categoryRepository)
@@ -62,7 +62,7 @@ class DashboardViewModelTest {
     @Test
     fun `cancelDelete clears pendingDelete without deleting`() {
         coEvery { categoryRepository.getAll() } returns flowOf(emptyList())
-        val impact = CategoryDeleteImpact(lessonCount = 0, sessionCount = 0, recordCount = 0)
+        val impact = CategoryDeleteImpact(lessonCount = 0, recordCount = 0)
         coEvery { categoryRepository.getDeleteImpact(1L) } returns impact
         val viewModel = DashboardViewModel(categoryRepository)
         viewModel.requestDelete(sampleCategory)
