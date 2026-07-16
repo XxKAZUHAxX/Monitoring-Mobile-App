@@ -30,7 +30,6 @@ class BackupRestoreViewModelTest {
         lessons = emptyList(),
         students = emptyList(),
         enrollments = emptyList(),
-        attendanceSessions = emptyList(),
         attendanceRecords = emptyList()
     )
 

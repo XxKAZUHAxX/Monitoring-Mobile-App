@@ -2,6 +2,7 @@ package com.example.lessonmonitor.ui.lesson
 
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
+import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -45,6 +46,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
+
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -65,6 +68,7 @@ fun LessonsListScreen(
     LaunchedEffect(categoryId) { viewModel.load(categoryId) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val lessonListState = rememberLazyListState()
+    val density = LocalDensity.current
 
     // Drag-to-reorder state for lessons
     var draggedLessonIndex by remember { mutableIntStateOf(-1) }
@@ -111,10 +115,10 @@ fun LessonsListScreen(
                     draggedIndex = draggedLessonIndex,
                     dragOffset = lessonDragOffset,
                     onDragStart = { index -> draggedLessonIndex = index; lessonDragOffset = 0f },
-                    onDrag = { change, amount ->
+                    onDrag = { change: androidx.compose.ui.input.pointer.PointerInputChange, amount: androidx.compose.ui.geometry.Offset ->
                         change.consume()
                         lessonDragOffset += amount.y
-                        val itemHeight = 80.dp.toPx()
+                        val itemHeight = with(density) { 80.dp.toPx() }
                         val positionsMoved = (lessonDragOffset / itemHeight).roundToInt()
                         val currentIdx = draggedLessonIndex
                         if (currentIdx in localLessonOrder.indices) {
@@ -195,14 +199,13 @@ fun LessonsListScreen(
 }
 
 @Composable
-@Composable
 private fun LessonsTab(
     lessons: List<LessonEntity>,
     listState: androidx.compose.foundation.lazy.LazyListState,
     draggedIndex: Int,
     dragOffset: Float,
     onDragStart: (Int) -> Unit,
-    onDrag: (androidx.compose.ui.input.pointer.PointerInputChange, Float) -> Unit,
+    onDrag: (androidx.compose.ui.input.pointer.PointerInputChange, androidx.compose.ui.geometry.Offset) -> Unit,
     onDragEnd: () -> Unit,
     onDragCancel: () -> Unit,
     onLessonClick: (Long) -> Unit,

@@ -17,7 +17,6 @@ class BackupJsonSerializerTest {
             lessons = emptyList(),
             students = emptyList(),
             enrollments = emptyList(),
-            attendanceSessions = emptyList(),
             attendanceRecords = emptyList()
         )
 
@@ -38,7 +37,6 @@ class BackupJsonSerializerTest {
               "lessons": [],
               "students": [],
               "enrollments": [],
-              "attendanceSessions": [],
               "attendanceRecords": [],
               "aFutureFieldThisVersionDoesNotKnowAbout": "ignored"
             }
