@@ -1,5 +1,7 @@
 package com.example.lessonmonitor.ui.lesson
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import kotlin.math.roundToInt
@@ -43,11 +45,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalDensity
-
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -226,6 +228,14 @@ private fun LessonsTab(
     ) {
         itemsIndexed(lessons, key = { _, lesson -> lesson.id }) { index, lesson ->
             val isDragged = index == draggedIndex
+            val elevation by animateDpAsState(
+                targetValue = if (isDragged) 8.dp else 0.dp,
+                label = "lessonCardElevation"
+            )
+            val scale by animateFloatAsState(
+                targetValue = if (isDragged) 1.03f else 1f,
+                label = "lessonCardScale"
+            )
             LessonCard(
                 lesson = lesson,
                 onClick = { onLessonClick(lesson.id) },
@@ -234,6 +244,12 @@ private fun LessonsTab(
                 modifier = Modifier
                     .zIndex(if (isDragged) 1f else 0f)
                     .offset { IntOffset(0, if (isDragged) dragOffset.roundToInt() else 0) }
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        shadowElevation = elevation.toPx()
+                    }
+                    .animateItemPlacement()
                     .pointerInput(lesson.id) {
                         detectDragGesturesAfterLongPress(
                             onDragStart = { onDragStart(index) },
@@ -258,36 +274,36 @@ private fun LessonCard(
     var menuExpanded by remember { mutableStateOf(false) }
 
     Card(onClick = onClick, modifier = modifier.fillMaxWidth()) {
-        Box {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(lesson.title, style = MaterialTheme.typography.titleMedium)
-                    val subtitle = listOfNotNull(
-                        lesson.facilitatorName?.takeIf { it.isNotBlank() },
-                        lesson.place?.takeIf { it.isNotBlank() }
-                    ).joinToString(" · ")
-                    if (subtitle.isNotBlank()) {
-                        Text(subtitle, style = MaterialTheme.typography.bodySmall)
-                    }
-                    Text(LocalDate.ofEpochDay(lesson.startDate).toString(), style = MaterialTheme.typography.bodySmall)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(lesson.title, style = MaterialTheme.typography.titleMedium)
+                val subtitle = listOfNotNull(
+                    lesson.facilitatorName?.takeIf { it.isNotBlank() },
+                    lesson.place?.takeIf { it.isNotBlank() }
+                ).joinToString(" · ")
+                if (subtitle.isNotBlank()) {
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall)
                 }
+                Text(LocalDate.ofEpochDay(lesson.startDate).toString(), style = MaterialTheme.typography.bodySmall)
+            }
+            Box {
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(Icons.Default.MoreVert, contentDescription = "More options")
                 }
-            }
-            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                DropdownMenuItem(
-                    text = { Text("Edit") },
-                    onClick = { menuExpanded = false; onEditClick() }
-                )
-                DropdownMenuItem(
-                    text = { Text("Delete") },
-                    onClick = { menuExpanded = false; onDeleteClick() }
-                )
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        onClick = { menuExpanded = false; onEditClick() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete") },
+                        onClick = { menuExpanded = false; onDeleteClick() }
+                    )
+                }
             }
         }
     }
@@ -332,26 +348,26 @@ private fun StudentRow(
     var menuExpanded by remember { mutableStateOf(false) }
 
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Box {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(entry.student.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(entry.student.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Box {
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(Icons.Default.MoreVert, contentDescription = "More options")
                 }
-            }
-            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                DropdownMenuItem(
-                    text = { Text("Edit") },
-                    onClick = { menuExpanded = false; onEditClick() }
-                )
-                DropdownMenuItem(
-                    text = { Text("Remove from category") },
-                    onClick = { menuExpanded = false; onRemoveClick() }
-                )
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        onClick = { menuExpanded = false; onEditClick() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Remove from category") },
+                        onClick = { menuExpanded = false; onRemoveClick() }
+                    )
+                }
             }
         }
     }
