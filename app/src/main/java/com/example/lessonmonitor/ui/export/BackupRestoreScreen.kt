@@ -91,7 +91,7 @@ fun BackupRestoreScreen(viewModel: BackupRestoreViewModel = hiltViewModel()) {
                 Text(
                     "This will permanently replace all current data with this file's contents: " +
                         "${snapshot.categories.size} categories, ${snapshot.lessons.size} lessons, " +
-                        "${snapshot.students.size} students, ${snapshot.attendanceSessions.size} sessions, " +
+                        "${snapshot.students.size} students, " +
                         "${snapshot.attendanceRecords.size} attendance records. This cannot be undone."
                 )
             },

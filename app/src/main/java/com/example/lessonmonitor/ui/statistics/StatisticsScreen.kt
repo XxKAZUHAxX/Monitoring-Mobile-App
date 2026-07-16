@@ -66,8 +66,9 @@ fun StatisticsScreen(
                     }
                     if (showBack) {
                         IconButton(onClick = {
-                            if (uiState.selectedStudentId != null) {
-                                viewModel.selectStudent(uiState.selectedStudentId)
+                            val studentId = uiState.selectedStudentId
+                            if (studentId != null) {
+                                viewModel.selectStudent(studentId)
                             }
                             viewModel.backToCategories()
                         }) {
