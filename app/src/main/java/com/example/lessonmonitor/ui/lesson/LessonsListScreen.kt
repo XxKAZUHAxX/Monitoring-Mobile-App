@@ -1,5 +1,6 @@
 package com.example.lessonmonitor.ui.lesson
 
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,9 +8,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
@@ -31,12 +35,17 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.lessonmonitor.data.local.entity.LessonEntity
@@ -55,6 +64,17 @@ fun LessonsListScreen(
 ) {
     LaunchedEffect(categoryId) { viewModel.load(categoryId) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val lessonListState = rememberLazyListState()
+
+    // Drag-to-reorder state for lessons
+    var draggedLessonIndex by remember { mutableIntStateOf(-1) }
+    var lessonDragOffset by remember { mutableFloatStateOf(0f) }
+    var localLessonOrder by remember(uiState.lessons) { mutableStateOf(uiState.lessons.toList()) }
+
+    // Sync localOrder when lessons update from DB and not dragging
+    if (draggedLessonIndex < 0) {
+        localLessonOrder = uiState.lessons.toList()
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Category") }) },
@@ -86,7 +106,39 @@ fun LessonsListScreen(
 
             if (selectedIndex == 0) {
                 LessonsTab(
-                    lessons = uiState.lessons,
+                    lessons = localLessonOrder,
+                    listState = lessonListState,
+                    draggedIndex = draggedLessonIndex,
+                    dragOffset = lessonDragOffset,
+                    onDragStart = { index -> draggedLessonIndex = index; lessonDragOffset = 0f },
+                    onDrag = { change, amount ->
+                        change.consume()
+                        lessonDragOffset += amount.y
+                        val itemHeight = 80.dp.toPx()
+                        val positionsMoved = (lessonDragOffset / itemHeight).roundToInt()
+                        val currentIdx = draggedLessonIndex
+                        if (currentIdx in localLessonOrder.indices) {
+                            val targetIdx = (currentIdx + positionsMoved).coerceIn(0, localLessonOrder.lastIndex)
+                            if (targetIdx != currentIdx) {
+                                val mutable = localLessonOrder.toMutableList()
+                                val moved = mutable.removeAt(currentIdx)
+                                mutable.add(targetIdx, moved)
+                                localLessonOrder = mutable
+                                draggedLessonIndex = targetIdx
+                                lessonDragOffset = 0f
+                            }
+                        }
+                    },
+                    onDragEnd = {
+                        viewModel.reorderLessons(localLessonOrder.map { it.id })
+                        draggedLessonIndex = -1
+                        lessonDragOffset = 0f
+                    },
+                    onDragCancel = {
+                        draggedLessonIndex = -1
+                        lessonDragOffset = 0f
+                        localLessonOrder = uiState.lessons.toList()
+                    },
                     onLessonClick = onLessonClick,
                     onEditClick = { /* navigate to edit */ },
                     onDeleteClick = { viewModel.requestDelete(it) }
@@ -143,8 +195,16 @@ fun LessonsListScreen(
 }
 
 @Composable
+@Composable
 private fun LessonsTab(
     lessons: List<LessonEntity>,
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    draggedIndex: Int,
+    dragOffset: Float,
+    onDragStart: (Int) -> Unit,
+    onDrag: (androidx.compose.ui.input.pointer.PointerInputChange, Float) -> Unit,
+    onDragEnd: () -> Unit,
+    onDragCancel: () -> Unit,
     onLessonClick: (Long) -> Unit,
     onEditClick: (LessonEntity) -> Unit,
     onDeleteClick: (LessonEntity) -> Unit
@@ -156,16 +216,29 @@ private fun LessonsTab(
         return
     }
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(lessons, key = { it.id }) { lesson ->
+        itemsIndexed(lessons, key = { _, lesson -> lesson.id }) { index, lesson ->
+            val isDragged = index == draggedIndex
             LessonCard(
                 lesson = lesson,
                 onClick = { onLessonClick(lesson.id) },
                 onEditClick = { onEditClick(lesson) },
-                onDeleteClick = { onDeleteClick(lesson) }
+                onDeleteClick = { onDeleteClick(lesson) },
+                modifier = Modifier
+                    .zIndex(if (isDragged) 1f else 0f)
+                    .offset { IntOffset(0, if (isDragged) dragOffset.roundToInt() else 0) }
+                    .pointerInput(lesson.id) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { onDragStart(index) },
+                            onDragEnd = onDragEnd,
+                            onDragCancel = onDragCancel,
+                            onDrag = onDrag
+                        )
+                    }
             )
         }
     }
@@ -176,11 +249,12 @@ private fun LessonCard(
     lesson: LessonEntity,
     onClick: () -> Unit,
     onEditClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    Card(onClick = onClick, modifier = modifier.fillMaxWidth()) {
         Box {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
