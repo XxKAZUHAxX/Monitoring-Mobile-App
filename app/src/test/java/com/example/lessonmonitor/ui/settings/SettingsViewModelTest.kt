@@ -4,6 +4,7 @@ import com.example.lessonmonitor.MainDispatcherRule
 import com.example.lessonmonitor.data.datastore.ThemeMode
 import com.example.lessonmonitor.data.datastore.ThemePreferences
 import com.example.lessonmonitor.domain.repository.AuthRepository
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk

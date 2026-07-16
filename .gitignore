@@ -22,6 +22,12 @@ gradlew.bat
 *.jks
 *.keystore
 
-
 # Claude Code
 .claude/
+
+# Markdowns
+android_monitoring_app_prompt.md
+APP_LOGIC.md
+ARCHITECTURE.md
+CLAUDE.md
+PLAN.md
