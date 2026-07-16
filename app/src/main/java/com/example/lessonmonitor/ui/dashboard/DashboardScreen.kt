@@ -1,5 +1,6 @@
 package com.example.lessonmonitor.ui.dashboard
 
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,9 +8,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
@@ -29,15 +32,21 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.lessonmonitor.data.local.entity.CategoryEntity
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +57,17 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val listState = rememberLazyListState()
+
+    // Drag-to-reorder state
+    var draggedIndex by remember { mutableIntStateOf(-1) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    var localOrder by remember(uiState.categories) { mutableStateOf(uiState.categories.toList()) }
+
+    // Sync localOrder when categories update from DB
+    if (draggedIndex < 0) {
+        localOrder = uiState.categories.toList()
+    }
 
     Scaffold(
         topBar = {
@@ -66,7 +86,7 @@ fun DashboardScreen(
             }
         }
     ) { innerPadding ->
-        if (uiState.categories.isEmpty()) {
+        if (localOrder.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 contentAlignment = Alignment.Center
@@ -75,16 +95,59 @@ fun DashboardScreen(
             }
         } else {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(uiState.categories, key = { it.id }) { category ->
+                itemsIndexed(localOrder, key = { _, cat -> cat.id }) { index, category ->
+                    val isDragged = index == draggedIndex
                     CategoryRow(
                         category = category,
                         onClick = { onCategoryClick(category.id) },
-                        onEditClick = { onCategoryClick(category.id) }, // opens category form via nav
-                        onDeleteClick = { viewModel.requestDelete(category) }
+                        onEditClick = { onCategoryClick(category.id) },
+                        onDeleteClick = { viewModel.requestDelete(category) },
+                        modifier = Modifier
+                            .zIndex(if (isDragged) 1f else 0f)
+                            .offset { IntOffset(0, if (isDragged) dragOffset.roundToInt() else 0) }
+                            .pointerInput(category.id) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = {
+                                        draggedIndex = index
+                                        dragOffset = 0f
+                                    },
+                                    onDragEnd = {
+                                        // Persist the new order
+                                        viewModel.reorderCategories(localOrder.map { it.id })
+                                        draggedIndex = -1
+                                        dragOffset = 0f
+                                    },
+                                    onDragCancel = {
+                                        draggedIndex = -1
+                                        dragOffset = 0f
+                                        localOrder = uiState.categories.toList()
+                                    },
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        dragOffset += dragAmount.y
+
+                                        // Calculate target position based on offset
+                                        val itemHeight = 80.dp.toPx() // approximate card height + spacing
+                                        val positionsMoved = (dragOffset / itemHeight).roundToInt()
+                                        val targetIndex = (index + positionsMoved)
+                                            .coerceIn(0, localOrder.lastIndex)
+
+                                        if (targetIndex != index) {
+                                            val mutable = localOrder.toMutableList()
+                                            val moved = mutable.removeAt(index)
+                                            mutable.add(targetIndex, moved)
+                                            localOrder = mutable
+                                            draggedIndex = targetIndex
+                                            dragOffset = 0f // reset offset after swap
+                                        }
+                                    }
+                                )
+                            }
                     )
                 }
             }
@@ -116,11 +179,12 @@ private fun CategoryRow(
     category: CategoryEntity,
     onClick: () -> Unit,
     onEditClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    Card(onClick = onClick, modifier = modifier.fillMaxWidth()) {
         Box {
             Row(
                 modifier = Modifier

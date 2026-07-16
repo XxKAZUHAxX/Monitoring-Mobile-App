@@ -81,23 +81,26 @@ fun StatisticsScreen(
             )
         }
     ) { innerPadding ->
+        val paddedModifier = Modifier.fillMaxSize().padding(innerPadding)
         if (uiState.isLoading) {
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
+            Box(modifier = paddedModifier, contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else if (uiState.selectedStudentId != null) {
             // Student drill-down: lessons for this category
-            StudentLessonList(rows = uiState.studentLessonRows)
+            StudentLessonList(rows = uiState.studentLessonRows, modifier = paddedModifier)
         } else if (uiState.selectedCategoryId != null) {
             // Category selected: per-student stats
             StudentStatsList(
                 rows = uiState.studentRows,
+                modifier = paddedModifier,
                 onStudentClick = { viewModel.selectStudent(it) }
             )
         } else {
             // Top level: list of categories
             CategoryList(
                 categories = uiState.categories,
+                modifier = paddedModifier,
                 onCategoryClick = { viewModel.selectCategory(it) }
             )
         }
@@ -107,16 +110,17 @@ fun StatisticsScreen(
 @Composable
 private fun CategoryList(
     categories: List<StatisticsViewModel.CategoryOverview>,
+    modifier: Modifier = Modifier,
     onCategoryClick: (Long) -> Unit
 ) {
     if (categories.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
             Text("No categories yet.")
         }
         return
     }
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier,
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -134,16 +138,17 @@ private fun CategoryList(
 @Composable
 private fun StudentStatsList(
     rows: List<StatisticsViewModel.StudentStatRow>,
+    modifier: Modifier = Modifier,
     onStudentClick: (Long) -> Unit
 ) {
     if (rows.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
             Text("No students enrolled in this category.")
         }
         return
     }
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier,
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -171,15 +176,15 @@ private fun StudentStatsList(
 }
 
 @Composable
-private fun StudentLessonList(rows: List<StatisticsViewModel.StudentLessonRow>) {
+private fun StudentLessonList(rows: List<StatisticsViewModel.StudentLessonRow>, modifier: Modifier = Modifier) {
     if (rows.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
             Text("No lessons in this category.")
         }
         return
     }
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier,
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
