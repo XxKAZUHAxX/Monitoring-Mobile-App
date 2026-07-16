@@ -2,6 +2,7 @@ package com.example.lessonmonitor.ui.lesson
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import kotlin.math.roundToInt
@@ -57,7 +58,7 @@ import com.example.lessonmonitor.data.local.entity.LessonEntity
 import com.example.lessonmonitor.domain.repository.RosterEntry
 import java.time.LocalDate
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun LessonsListScreen(
     categoryId: Long,
@@ -200,6 +201,7 @@ fun LessonsListScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LessonsTab(
     lessons: List<LessonEntity>,

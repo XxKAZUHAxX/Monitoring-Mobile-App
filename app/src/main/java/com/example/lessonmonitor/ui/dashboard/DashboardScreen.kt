@@ -2,6 +2,7 @@ package com.example.lessonmonitor.ui.dashboard
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,7 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.lessonmonitor.data.local.entity.CategoryEntity
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun DashboardScreen(
     onCategoryClick: (categoryId: Long) -> Unit,
