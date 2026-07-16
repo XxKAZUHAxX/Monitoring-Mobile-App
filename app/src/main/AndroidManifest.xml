@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Local reminder notifications (Feature J) -->
+    <!-- Local reminder notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <!-- Optional biometric unlock layer on top of the local PIN/password (Feature A) -->
+    <!-- Reschedule alarms after device reboot -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Optional biometric unlock layer on top of the local PIN/password -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
     <application
@@ -27,14 +29,23 @@
             </intent-filter>
         </activity>
 
-        <!-- Receives AlarmManager broadcasts scheduled by AlarmScheduler and posts
-             local notifications reminding the user of an upcoming lesson session.
+        <!-- Receives AlarmManager broadcasts scheduled by LessonAlarmScheduler and posts
+             local notifications reminding the user of an upcoming lesson.
              Exported=false since only the local AlarmManager sends these. -->
         <receiver
-            android:name=".data.worker.SessionReminderReceiver"
+            android:name=".data.worker.LessonReminderReceiver"
             android:exported="false" />
 
-        <!-- Share sheet for CSV/JSON exports (Feature: Export/backup, PLAN.md §7 milestone 13). -->
+        <!-- Reschedules all lesson alarms after device reboot. -->
+        <receiver
+            android:name=".data.worker.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Share sheet for CSV/JSON exports. -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

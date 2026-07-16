@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface LessonDao {
-    @Query("SELECT * FROM lessons WHERE categoryId = :categoryId ORDER BY startDate")
+    @Query("SELECT * FROM lessons WHERE categoryId = :categoryId ORDER BY sortOrder ASC")
     fun getAllByCategory(categoryId: Long): Flow<List<LessonEntity>>
 
     @Query("SELECT * FROM lessons ORDER BY startDate")
@@ -19,17 +19,13 @@ interface LessonDao {
     @Query("SELECT * FROM lessons WHERE id = :lessonId")
     fun getById(lessonId: Long): Flow<LessonEntity?>
 
-    /** Used by the rolling-window session generator (PLAN.md §3, roadblock #2). */
-    @Query("SELECT * FROM lessons WHERE isRecurring = 1")
-    suspend fun getAllRecurring(): List<LessonEntity>
-
     @Query("SELECT * FROM lessons WHERE title LIKE '%' || :query || '%' COLLATE NOCASE")
     fun search(query: String): Flow<List<LessonEntity>>
 
     @Insert
     suspend fun insert(lesson: LessonEntity): Long
 
-    /** Bulk-restore for the JSON backup snapshot (PLAN.md §7 milestone 13). Table is cleared first via `AppDatabase.clearAllTables()`. */
+    /** Bulk-restore for the JSON backup snapshot. Table is cleared first via `AppDatabase.clearAllTables()`. */
     @Insert
     suspend fun insertAll(lessons: List<LessonEntity>)
 
@@ -42,4 +38,11 @@ interface LessonDao {
     /** Impact count for the cascade-delete confirmation dialog when deleting a Category. */
     @Query("SELECT COUNT(*) FROM lessons WHERE categoryId = :categoryId")
     suspend fun countByCategory(categoryId: Long): Int
+
+    /** Max sortOrder within a category — new lessons get this + 1. */
+    @Query("SELECT MAX(sortOrder) FROM lessons WHERE categoryId = :categoryId")
+    suspend fun getMaxSortOrder(categoryId: Long): Int?
+
+    @Query("UPDATE lessons SET sortOrder = :sortOrder WHERE id = :lessonId")
+    suspend fun updateSortOrder(lessonId: Long, sortOrder: Int)
 }

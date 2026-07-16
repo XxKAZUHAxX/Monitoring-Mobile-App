@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CategoryDao {
-    @Query("SELECT * FROM categories ORDER BY name COLLATE NOCASE")
+    @Query("SELECT * FROM categories ORDER BY sortOrder ASC")
     fun getAll(): Flow<List<CategoryEntity>>
 
     @Query("SELECT * FROM categories WHERE id = :categoryId")
@@ -22,7 +22,7 @@ interface CategoryDao {
     @Insert
     suspend fun insert(category: CategoryEntity): Long
 
-    /** Bulk-restore for the JSON backup snapshot (PLAN.md §7 milestone 13). Table is cleared first via `AppDatabase.clearAllTables()`. */
+    /** Bulk-restore for the JSON backup snapshot. Table is cleared first via `AppDatabase.clearAllTables()`. */
     @Insert
     suspend fun insertAll(categories: List<CategoryEntity>)
 
@@ -32,7 +32,14 @@ interface CategoryDao {
     @Delete
     suspend fun delete(category: CategoryEntity)
 
-    /** Impact count for the cascade-delete confirmation dialog (PLAN.md §1 assumption #3). */
+    /** Impact count for the cascade-delete confirmation dialog. */
     @Query("SELECT COUNT(*) FROM lessons WHERE categoryId = :categoryId")
     suspend fun countLessons(categoryId: Long): Int
+
+    /** Max sortOrder — new categories get this + 1. */
+    @Query("SELECT MAX(sortOrder) FROM categories")
+    suspend fun getMaxSortOrder(): Int?
+
+    @Query("UPDATE categories SET sortOrder = :sortOrder WHERE id = :categoryId")
+    suspend fun updateSortOrder(categoryId: Long, sortOrder: Int)
 }

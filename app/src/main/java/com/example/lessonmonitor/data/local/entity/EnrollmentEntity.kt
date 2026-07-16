@@ -7,22 +7,20 @@ import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 /**
- * Lesson <-> Student join table. Removing a student from a roster should set
- * [active] = false rather than deleting the row outright in most UI flows, so
- * re-enrolling doesn't create a duplicate; the unique index below enforces at
- * most one row per (lessonId, studentId) pair. Attendance history does NOT
- * depend on this row — [AttendanceRecordEntity] references `studentId`
- * directly, so deactivating/removing an enrollment never deletes history
- * (see PLAN.md §3, roadblock #5).
+ * Category <-> Student join table. Enrolling a student in a category places
+ * them on the roster for *every* lesson in that category. Removing a student
+ * sets [active] = false rather than deleting the row, so re-enrolling reuses
+ * the existing row (unique index on categoryId+studentId). Attendance history
+ * is NOT affected — [AttendanceRecordEntity] references [studentId] directly.
  */
 @Serializable
 @Entity(
     tableName = "enrollments",
     foreignKeys = [
         ForeignKey(
-            entity = LessonEntity::class,
+            entity = CategoryEntity::class,
             parentColumns = ["id"],
-            childColumns = ["lessonId"],
+            childColumns = ["categoryId"],
             onDelete = ForeignKey.CASCADE
         ),
         ForeignKey(
@@ -33,14 +31,14 @@ import kotlinx.serialization.Serializable
         )
     ],
     indices = [
-        Index("lessonId"),
+        Index("categoryId"),
         Index("studentId"),
-        Index(value = ["lessonId", "studentId"], unique = true)
+        Index(value = ["categoryId", "studentId"], unique = true)
     ]
 )
 data class EnrollmentEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
-    val lessonId: Long,
+    val categoryId: Long,
     val studentId: Long,
     val enrolledAt: Long,
     val active: Boolean = true

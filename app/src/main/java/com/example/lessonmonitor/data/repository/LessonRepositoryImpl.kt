@@ -1,11 +1,9 @@
 package com.example.lessonmonitor.data.repository
 
 import com.example.lessonmonitor.data.local.dao.AttendanceRecordDao
-import com.example.lessonmonitor.data.local.dao.AttendanceSessionDao
 import com.example.lessonmonitor.data.local.dao.EnrollmentDao
 import com.example.lessonmonitor.data.local.dao.LessonDao
 import com.example.lessonmonitor.data.local.entity.LessonEntity
-import com.example.lessonmonitor.data.local.entity.RecurrenceType
 import com.example.lessonmonitor.domain.repository.LessonDeleteImpact
 import com.example.lessonmonitor.domain.repository.LessonRepository
 import kotlinx.coroutines.flow.Flow
@@ -16,7 +14,6 @@ import javax.inject.Singleton
 class LessonRepositoryImpl @Inject constructor(
     private val lessonDao: LessonDao,
     private val enrollmentDao: EnrollmentDao,
-    private val attendanceSessionDao: AttendanceSessionDao,
     private val attendanceRecordDao: AttendanceRecordDao
 ) : LessonRepository {
 
@@ -27,8 +24,6 @@ class LessonRepositoryImpl @Inject constructor(
 
     override fun getById(lessonId: Long): Flow<LessonEntity?> = lessonDao.getById(lessonId)
 
-    override suspend fun getAllRecurring(): List<LessonEntity> = lessonDao.getAllRecurring()
-
     override fun search(query: String): Flow<List<LessonEntity>> = lessonDao.search(query)
 
     override suspend fun create(
@@ -37,15 +32,11 @@ class LessonRepositoryImpl @Inject constructor(
         description: String?,
         facilitatorName: String?,
         place: String?,
-        isRecurring: Boolean,
-        recurrenceType: RecurrenceType,
-        recurrenceDaysOfWeek: String?,
         startDate: Long,
-        endDate: Long?,
-        startTime: Int?,
-        endTime: Int?
+        startTime: Int?
     ): Long {
         val now = System.currentTimeMillis()
+        val sortOrder = (lessonDao.getMaxSortOrder(categoryId) ?: -1) + 1
         return lessonDao.insert(
             LessonEntity(
                 categoryId = categoryId,
@@ -53,13 +44,9 @@ class LessonRepositoryImpl @Inject constructor(
                 description = description,
                 facilitatorName = facilitatorName,
                 place = place,
-                isRecurring = isRecurring,
-                recurrenceType = recurrenceType,
-                recurrenceDaysOfWeek = recurrenceDaysOfWeek,
                 startDate = startDate,
-                endDate = endDate,
                 startTime = startTime,
-                endTime = endTime,
+                sortOrder = sortOrder,
                 createdAt = now,
                 updatedAt = now
             )
@@ -75,8 +62,20 @@ class LessonRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getDeleteImpact(lessonId: Long): LessonDeleteImpact = LessonDeleteImpact(
-        enrollmentCount = enrollmentDao.countForLesson(lessonId),
-        sessionCount = attendanceSessionDao.countForLesson(lessonId),
+        enrollmentCount = 0, // enrollment is now category-scoped, not lesson-scoped
         recordCount = attendanceRecordDao.countForLesson(lessonId)
     )
+
+    override suspend fun getMaxSortOrder(categoryId: Long): Int? =
+        lessonDao.getMaxSortOrder(categoryId)
+
+    override suspend fun updateSortOrder(lessonId: Long, sortOrder: Int) {
+        lessonDao.updateSortOrder(lessonId, sortOrder)
+    }
+
+    override suspend fun reorderLessons(categoryId: Long, orderedIds: List<Long>) {
+        orderedIds.forEachIndexed { index, lessonId ->
+            lessonDao.updateSortOrder(lessonId, index)
+        }
+    }
 }

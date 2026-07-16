@@ -12,6 +12,8 @@ data class CategoryEntity(
     val description: String? = null,
     val color: Int? = null,
     val icon: String? = null,
+    /** Drag-to-reorder position on the Dashboard list. New categories get max(existing)+1. */
+    val sortOrder: Int = 0,
     val createdAt: Long,
     val updatedAt: Long
 )

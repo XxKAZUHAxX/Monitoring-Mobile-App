@@ -9,7 +9,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -19,18 +18,13 @@ import androidx.navigation.compose.rememberNavController
 
 /**
  * The post-login app shell: a bottom nav bar + its own internal NavHost with
- * one nested graph per tab (Dashboard/Calendar/Statistics/Settings), so each
- * tab keeps its own back stack/state when switching tabs — see PLAN.md §4.
- * [rootNavController] is threaded through to the Settings tab so "log out"
- * can pop all the way back to the auth graph.
+ * one nested graph per tab (Dashboard/Statistics/Settings), so each tab keeps
+ * its own back stack/state when switching tabs.
  *
- * [mainScreenViewModel] has no UI state of its own — obtaining it via
- * `hiltViewModel()` here just triggers its one-time recurring-session
- * generation side effect (see [MainScreenViewModel]) exactly once per
- * app-open, scoped to this composable's back stack entry.
+ * Tab re-tap pops the selected tab's inner back stack to its root destination.
  */
 @Composable
-fun MainScreen(rootNavController: NavHostController, mainScreenViewModel: MainScreenViewModel = hiltViewModel()) {
+fun MainScreen(rootNavController: NavHostController) {
     val innerNavController = rememberNavController()
 
     Scaffold(
@@ -43,12 +37,17 @@ fun MainScreen(rootNavController: NavHostController, mainScreenViewModel: MainSc
                     NavigationBarItem(
                         selected = selected,
                         onClick = {
-                            innerNavController.navigate(item.graphRoute) {
-                                popUpTo(innerNavController.graph.findStartDestination().id) {
-                                    saveState = true
+                            if (selected) {
+                                // Re-tap: pop to the graph's start destination.
+                                innerNavController.popBackStack(item.graphRoute, inclusive = false)
+                            } else {
+                                innerNavController.navigate(item.graphRoute) {
+                                    popUpTo(innerNavController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
                         },
                         icon = { Icon(item.icon, contentDescription = item.label) },
@@ -64,7 +63,6 @@ fun MainScreen(rootNavController: NavHostController, mainScreenViewModel: MainSc
             modifier = Modifier.padding(innerPadding)
         ) {
             dashboardGraph(innerNavController)
-            calendarGraph(innerNavController)
             statisticsGraph(innerNavController)
             settingsGraph(innerNavController, rootNavController)
         }

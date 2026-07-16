@@ -2,7 +2,6 @@ package com.example.lessonmonitor.data.repository
 
 import com.example.lessonmonitor.data.local.AppDatabase
 import com.example.lessonmonitor.data.local.dao.AttendanceRecordDao
-import com.example.lessonmonitor.data.local.dao.AttendanceSessionDao
 import com.example.lessonmonitor.data.local.dao.CategoryDao
 import com.example.lessonmonitor.data.local.dao.EnrollmentDao
 import com.example.lessonmonitor.data.local.dao.LessonDao
@@ -22,7 +21,6 @@ class BackupRepositoryImpl @Inject constructor(
     private val lessonDao: LessonDao,
     private val studentDao: StudentDao,
     private val enrollmentDao: EnrollmentDao,
-    private val attendanceSessionDao: AttendanceSessionDao,
     private val attendanceRecordDao: AttendanceRecordDao
 ) : BackupRepository {
 
@@ -34,7 +32,6 @@ class BackupRepositoryImpl @Inject constructor(
         lessons = lessonDao.getAll().first(),
         students = studentDao.getAll().first(),
         enrollments = enrollmentDao.getAll().first(),
-        attendanceSessions = attendanceSessionDao.getAll().first(),
         attendanceRecords = attendanceRecordDao.getAll().first()
     )
 
@@ -50,14 +47,12 @@ class BackupRepositoryImpl @Inject constructor(
         studentDao.insertAll(snapshot.students)
         lessonDao.insertAll(snapshot.lessons)
         enrollmentDao.insertAll(snapshot.enrollments)
-        attendanceSessionDao.insertAll(snapshot.attendanceSessions)
         attendanceRecordDao.insertAll(snapshot.attendanceRecords)
         snapshot.users.forEach { userDao.upsert(it) }
     }
 
     companion object {
         /** Kept in sync with [AppDatabase]'s `@Database(version = ...)`. */
-        const val SCHEMA_VERSION = 1
+        const val SCHEMA_VERSION = 2
     }
 }
-

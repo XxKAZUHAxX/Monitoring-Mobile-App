@@ -7,10 +7,9 @@ import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 /**
- * `facilitatorName`/`place` are the *default* values for this lesson;
- * individual [AttendanceSessionEntity] rows may override either for a single
- * occurrence (e.g. a substitute facilitator on one date) — see PLAN.md §1
- * assumption #2.
+ * A lesson is a single occurrence on a specific date. Recurring lessons have
+ * been removed — each lesson stands alone. [facilitatorName] and [place] are
+ * stored directly here (no more per-session overrides).
  */
 @Serializable
 @Entity(
@@ -32,20 +31,12 @@ data class LessonEntity(
     val description: String? = null,
     val facilitatorName: String? = null,
     val place: String? = null,
-    val isRecurring: Boolean = false,
-    val recurrenceType: RecurrenceType = RecurrenceType.NONE,
-    /**
-     * CSV of ISO-8601 day-of-week ints (1=Monday..7=Sunday); used when
-     * [recurrenceType] is [RecurrenceType.WEEKLY] or [RecurrenceType.CUSTOM_DAYS].
-     */
-    val recurrenceDaysOfWeek: String? = null,
-    /** Epoch day (days since 1970-01-01) of the first occurrence / one-off date. */
+    /** Epoch day (days since 1970-01-01) of the lesson date. */
     val startDate: Long,
-    /** Epoch day; null means the recurrence has no defined end. */
-    val endDate: Long? = null,
-    /** Minutes since midnight; used for notifications & calendar display. */
+    /** Minutes since midnight; used for notification scheduling. */
     val startTime: Int? = null,
-    val endTime: Int? = null,
+    /** Drag-to-reorder position within a category. New lessons get max(existing)+1. */
+    val sortOrder: Int = 0,
     val createdAt: Long,
     val updatedAt: Long
 )

@@ -1,8 +1,8 @@
 package com.example.lessonmonitor.navigation
 
 /**
- * Central route registry (PLAN.md §4). Route *patterns* are Navigation-Compose
- * template strings (e.g. "lesson_detail/{lessonId}"); the helper functions
+ * Central route registry. Route *patterns* are Navigation-Compose
+ * template strings (e.g. "lesson_attendance/{lessonId}"); the helper functions
  * below build the concrete, navigable route string for a given id.
  *
  * ID arguments use [NEW_ID] (`0L`) as a "not applicable / create new" sentinel
@@ -17,7 +17,7 @@ object Routes {
 
     /**
      * Single entry point into the post-login app; internally hosts its own
-     * NavHost + bottom nav bar (see MainScreen.kt) with 4 nested tab graphs.
+     * NavHost + bottom nav bar (see MainScreen.kt) with 3 nested tab graphs.
      */
     const val MAIN = "main"
 
@@ -27,21 +27,17 @@ object Routes {
     const val CATEGORY_FORM_PATTERN = "category_form/{categoryId}"
     const val LESSONS_LIST_PATTERN = "lessons_list/{categoryId}"
     const val LESSON_FORM_PATTERN = "lesson_form/{categoryId}/{lessonId}"
-    const val LESSON_DETAIL_PATTERN = "lesson_detail/{lessonId}"
-    const val STUDENT_PICKER_PATTERN = "student_picker/{lessonId}"
+    const val LESSON_INFO_PATTERN = "lesson_info/{lessonId}"
+    const val LESSON_ATTENDANCE_PATTERN = "lesson_attendance/{lessonId}"
     const val STUDENT_FORM_PATTERN = "student_form/{studentId}"
     const val STUDENT_DETAIL_PATTERN = "student_detail/{studentId}"
-    const val ATTENDANCE_SESSION_PATTERN = "attendance_session/{lessonId}/{sessionId}"
+    const val STUDENT_ENROLLMENT_PATTERN = "student_enrollment/{categoryId}"
     const val SEARCH = "search"
-
-    // Calendar tab graph
-    const val CALENDAR_GRAPH = "calendar_graph"
-    const val CALENDAR = "calendar"
-    const val DAY_AGENDA_PATTERN = "day_agenda/{epochDay}"
 
     // Statistics tab graph
     const val STATISTICS_GRAPH = "statistics_graph"
     const val STATISTICS = "statistics"
+    const val CATEGORY_STATS_PATTERN = "category_stats/{categoryId}"
 
     // Settings tab graph
     const val SETTINGS_GRAPH = "settings_graph"
@@ -55,10 +51,10 @@ object Routes {
     fun categoryForm(categoryId: Long = NEW_ID) = "category_form/$categoryId"
     fun lessonsList(categoryId: Long) = "lessons_list/$categoryId"
     fun lessonForm(categoryId: Long, lessonId: Long = NEW_ID) = "lesson_form/$categoryId/$lessonId"
-    fun lessonDetail(lessonId: Long) = "lesson_detail/$lessonId"
-    fun studentPicker(lessonId: Long) = "student_picker/$lessonId"
+    fun lessonInfo(lessonId: Long) = "lesson_info/$lessonId"
+    fun lessonAttendance(lessonId: Long) = "lesson_attendance/$lessonId"
     fun studentForm(studentId: Long = NEW_ID) = "student_form/$studentId"
     fun studentDetail(studentId: Long) = "student_detail/$studentId"
-    fun attendanceSession(lessonId: Long, sessionId: Long) = "attendance_session/$lessonId/$sessionId"
-    fun dayAgenda(epochDay: Long) = "day_agenda/$epochDay"
+    fun studentEnrollment(categoryId: Long) = "student_enrollment/$categoryId"
+    fun categoryStats(categoryId: Long) = "category_stats/$categoryId"
 }

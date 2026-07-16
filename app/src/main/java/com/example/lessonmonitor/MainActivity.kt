@@ -22,17 +22,15 @@ import javax.inject.Inject
 
 /**
  * Extends `FragmentActivity` (not plain `ComponentActivity`) because
- * androidx.biometric's `BiometricPrompt` requires one — see
- * `ui/auth/BiometricAuth.kt` and PLAN.md §6. `FragmentActivity` is itself a
- * `ComponentActivity`, so `setContent`/`enableEdgeToEdge` still apply.
+ * androidx.biometric's `BiometricPrompt` requires one.
  *
  * Theme mode is read from [ThemePreferences] (DataStore) and passed to
  * [LessonMonitorTheme] so the user's manual override (set in Settings)
  * controls the light/dark appearance.
  *
  * Deep-link intents (from notification taps) carry a
- * `lessonmonitor://lesson/{lessonId}/session/{sessionId}` URI and are
- * forwarded to the outer [NavHostController] via [NavHostController.handleDeepLink]
+ * `lessonmonitor://lesson/{lessonId}/attendance` URI and are forwarded to
+ * the outer [NavHostController] via [NavHostController.handleDeepLink]
  * both at initial launch and via [onNewIntent] when the app is already running.
  */
 @AndroidEntryPoint

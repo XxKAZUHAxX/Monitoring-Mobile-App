@@ -7,23 +7,22 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
-import com.example.lessonmonitor.ui.attendance.AttendanceSessionScreen
+import com.example.lessonmonitor.ui.attendance.LessonAttendanceScreen
 import com.example.lessonmonitor.ui.category.CategoryFormScreen
 import com.example.lessonmonitor.ui.dashboard.DashboardScreen
-import com.example.lessonmonitor.ui.lesson.LessonDetailScreen
 import com.example.lessonmonitor.ui.lesson.LessonFormScreen
+import com.example.lessonmonitor.ui.lesson.LessonInfoScreen
 import com.example.lessonmonitor.ui.lesson.LessonsListScreen
 import com.example.lessonmonitor.ui.search.SearchScreen
 import com.example.lessonmonitor.ui.student.StudentDetailScreen
+import com.example.lessonmonitor.ui.student.StudentEnrollmentScreen
 import com.example.lessonmonitor.ui.student.StudentFormScreen
-import com.example.lessonmonitor.ui.student.StudentPickerScreen
 
 /**
- * Dashboard tab: Categories -> Lessons -> Lesson Detail -> (roster/sessions),
- * plus the Student Picker/Form/Detail and Search screens that are reached
- * from this tab. `StudentDetail` is also navigated to from the Statistics
- * tab (see StatisticsNavGraph.kt) — routes are unique across the whole graph
- * regardless of which nested block declares them.
+ * Dashboard tab: Categories -> Lessons List (Lessons + Students tabs) ->
+ * Lesson Attendance / Lesson Info / Student Enrollment / Student Detail,
+ * plus Search. Routes are unique across the whole graph regardless of which
+ * nested block declares them.
  */
 fun NavGraphBuilder.dashboardGraph(navController: NavHostController) {
     navigation(startDestination = Routes.DASHBOARD, route = Routes.DASHBOARD_GRAPH) {
@@ -48,8 +47,11 @@ fun NavGraphBuilder.dashboardGraph(navController: NavHostController) {
             val categoryId = backStackEntry.arguments?.getLong("categoryId") ?: Routes.NEW_ID
             LessonsListScreen(
                 categoryId = categoryId,
-                onLessonClick = { lessonId -> navController.navigate(Routes.lessonDetail(lessonId)) },
-                onAddLesson = { navController.navigate(Routes.lessonForm(categoryId)) }
+                onLessonClick = { lessonId -> navController.navigate(Routes.lessonAttendance(lessonId)) },
+                onLessonInfoClick = { lessonId -> navController.navigate(Routes.lessonInfo(lessonId)) },
+                onAddLesson = { navController.navigate(Routes.lessonForm(categoryId)) },
+                onAddStudent = { navController.navigate(Routes.studentEnrollment(categoryId)) },
+                onStudentClick = { studentId -> navController.navigate(Routes.studentDetail(studentId)) }
             )
         }
         composable(
@@ -64,24 +66,32 @@ fun NavGraphBuilder.dashboardGraph(navController: NavHostController) {
             LessonFormScreen(categoryId = categoryId, lessonId = lessonId, onDone = { navController.popBackStack() })
         }
         composable(
-            route = Routes.LESSON_DETAIL_PATTERN,
+            route = Routes.LESSON_INFO_PATTERN,
             arguments = listOf(navArgument("lessonId") { type = NavType.LongType })
         ) { backStackEntry ->
             val lessonId = backStackEntry.arguments?.getLong("lessonId") ?: Routes.NEW_ID
-            LessonDetailScreen(
+            LessonInfoScreen(
                 lessonId = lessonId,
-                onAddStudent = { navController.navigate(Routes.studentPicker(lessonId)) },
-                onStudentClick = { studentId -> navController.navigate(Routes.studentDetail(studentId)) },
-                onSessionClick = { sessionId -> navController.navigate(Routes.attendanceSession(lessonId, sessionId)) }
+                onEditClick = { navController.navigate(Routes.lessonForm(0L, lessonId)) }
             )
         }
         composable(
-            route = Routes.STUDENT_PICKER_PATTERN,
-            arguments = listOf(navArgument("lessonId") { type = NavType.LongType })
+            route = Routes.LESSON_ATTENDANCE_PATTERN,
+            arguments = listOf(navArgument("lessonId") { type = NavType.LongType }),
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "lessonmonitor://lesson/{lessonId}/attendance" }
+            )
         ) { backStackEntry ->
             val lessonId = backStackEntry.arguments?.getLong("lessonId") ?: Routes.NEW_ID
-            StudentPickerScreen(
-                lessonId = lessonId,
+            LessonAttendanceScreen(lessonId = lessonId)
+        }
+        composable(
+            route = Routes.STUDENT_ENROLLMENT_PATTERN,
+            arguments = listOf(navArgument("categoryId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val categoryId = backStackEntry.arguments?.getLong("categoryId") ?: Routes.NEW_ID
+            StudentEnrollmentScreen(
+                categoryId = categoryId,
                 onCreateNewStudent = { navController.navigate(Routes.studentForm()) },
                 onDone = { navController.popBackStack() }
             )
@@ -100,24 +110,10 @@ fun NavGraphBuilder.dashboardGraph(navController: NavHostController) {
             val studentId = backStackEntry.arguments?.getLong("studentId") ?: Routes.NEW_ID
             StudentDetailScreen(studentId = studentId, onDeleted = { navController.popBackStack() })
         }
-        composable(
-            route = Routes.ATTENDANCE_SESSION_PATTERN,
-            arguments = listOf(
-                navArgument("lessonId") { type = NavType.LongType },
-                navArgument("sessionId") { type = NavType.LongType }
-            ),
-            deepLinks = listOf(
-                navDeepLink { uriPattern = "lessonmonitor://lesson/{lessonId}/session/{sessionId}" }
-            )
-        ) { backStackEntry ->
-            val lessonId = backStackEntry.arguments?.getLong("lessonId") ?: Routes.NEW_ID
-            val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: Routes.NEW_ID
-            AttendanceSessionScreen(lessonId = lessonId, sessionId = sessionId)
-        }
         composable(Routes.SEARCH) {
             SearchScreen(
                 onCategoryResultClick = { categoryId -> navController.navigate(Routes.lessonsList(categoryId)) },
-                onLessonResultClick = { lessonId -> navController.navigate(Routes.lessonDetail(lessonId)) },
+                onLessonResultClick = { lessonId -> navController.navigate(Routes.lessonAttendance(lessonId)) },
                 onStudentResultClick = { studentId -> navController.navigate(Routes.studentDetail(studentId)) }
             )
         }

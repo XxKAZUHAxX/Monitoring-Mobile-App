@@ -23,7 +23,6 @@ class DashboardViewModel @Inject constructor(
         val pendingDelete: PendingDelete? = null
     )
 
-    /** Populated once the exact cascade-delete impact counts have been fetched (PLAN.md §1 assumption #3). */
     data class PendingDelete(
         val category: CategoryEntity,
         val impact: CategoryDeleteImpact
@@ -57,5 +56,11 @@ class DashboardViewModel @Inject constructor(
 
     fun cancelDelete() {
         _uiState.update { it.copy(pendingDelete = null) }
+    }
+
+    fun reorderCategories(orderedIds: List<Long>) {
+        viewModelScope.launch {
+            categoryRepository.reorderCategories(orderedIds)
+        }
     }
 }

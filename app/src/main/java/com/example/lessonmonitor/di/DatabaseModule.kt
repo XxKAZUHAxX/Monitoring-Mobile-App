@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.Room
 import com.example.lessonmonitor.data.local.AppDatabase
 import com.example.lessonmonitor.data.local.dao.AttendanceRecordDao
-import com.example.lessonmonitor.data.local.dao.AttendanceSessionDao
 import com.example.lessonmonitor.data.local.dao.CategoryDao
 import com.example.lessonmonitor.data.local.dao.EnrollmentDao
 import com.example.lessonmonitor.data.local.dao.LessonDao
@@ -17,7 +16,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
-/** Provides the Room database + DAOs app-wide. This is the Phase-1 "local data source" — see PLAN.md §3 roadblock #6 for how Phase 2 remote sync is meant to bolt on alongside this without touching ViewModels/UI. */
+/** Provides the Room database + DAOs app-wide. This is the Phase-1 "local data source". */
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
@@ -26,6 +25,7 @@ object DatabaseModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.DATABASE_NAME)
+            .fallbackToDestructiveMigration()
             .build()
 
     @Provides
@@ -42,9 +42,6 @@ object DatabaseModule {
 
     @Provides
     fun provideEnrollmentDao(db: AppDatabase): EnrollmentDao = db.enrollmentDao()
-
-    @Provides
-    fun provideAttendanceSessionDao(db: AppDatabase): AttendanceSessionDao = db.attendanceSessionDao()
 
     @Provides
     fun provideAttendanceRecordDao(db: AppDatabase): AttendanceRecordDao = db.attendanceRecordDao()

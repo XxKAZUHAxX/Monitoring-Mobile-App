@@ -1,56 +1,39 @@
 package com.example.lessonmonitor.domain.repository
 
 import com.example.lessonmonitor.data.local.entity.AttendanceRecordEntity
-import com.example.lessonmonitor.data.local.entity.AttendanceSessionEntity
 import com.example.lessonmonitor.data.local.entity.AttendanceStatus
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Per-occurrence attendance tracking (PLAN.md §7 milestone 7). Sessions can
- * be created manually (from the Lesson Detail "Sessions" tab) or in bulk by
- * `domain.schedule.RecurringSessionGenerator` (milestone #9), which walks a
- * recurring lesson's rule across a rolling 60-day window (PLAN.md §1
- * assumption #4) and calls [createSession] once per occurrence date —
- * [AttendanceSessionDao.insert]'s idempotent (lessonId, sessionDate)
- * uniqueness means re-running the generator is always safe.
+ * Per-lesson attendance tracking. Each lesson is its own session — marking
+ * attendance works directly against a lesson. Students are drawn from the
+ * lesson's category enrollment roster.
  */
 interface AttendanceRepository {
-    fun getSessionsForLesson(lessonId: Long): Flow<List<AttendanceSessionEntity>>
+    /** All attendance records for a lesson (one per enrolled student). */
+    fun getRecordsForLesson(lessonId: Long): Flow<List<AttendanceRecordEntity>>
 
-    fun getSession(sessionId: Long): Flow<AttendanceSessionEntity?>
+    /** Marking again for the same (lessonId, studentId) overwrites the prior status/reason/completed. */
+    suspend fun markAttendance(
+        lessonId: Long,
+        studentId: Long,
+        status: AttendanceStatus,
+        absenceReason: String?,
+        completed: Boolean = false
+    )
 
-    /** Idempotent: returns the existing session's id if one already exists for that (lessonId, sessionDate). */
-    suspend fun createSession(lessonId: Long, sessionDate: Long): Long
-
-    fun getRecordsForSession(sessionId: Long): Flow<List<AttendanceRecordEntity>>
-
-    /** Marking again for the same (sessionId, studentId) overwrites the prior status/reason. */
-    suspend fun markAttendance(sessionId: Long, studentId: Long, status: AttendanceStatus, absenceReason: String?)
-
-    /** Cross-lesson attendance history for the Student Detail screen (PLAN.md §4 screen 11), newest first. */
+    /** Cross-lesson attendance history for the Student Detail screen, newest first. */
     fun getHistoryForStudent(studentId: Long): Flow<List<StudentAttendanceHistoryEntry>>
 
-    /** Backs the Calendar/DayAgenda screens (PLAN.md §4 screens 13/14), inclusive of both bounds. */
-    fun getSessionsInRange(startEpochDay: Long, endEpochDay: Long): Flow<List<CalendarSessionEntry>>
-
-    /** Statistics dashboard (PLAN.md §7 milestone 12): present-vs-total across every session for one student. */
+    /** Statistics dashboard: present-vs-total across every lesson for one student. */
     suspend fun getStudentAttendanceStats(studentId: Long): AttendanceStats
 
-    /** Statistics dashboard (PLAN.md §7 milestone 12): present-vs-total across every session for one lesson. */
+    /** Statistics dashboard: present-vs-total for one lesson. */
     suspend fun getLessonAttendanceStats(lessonId: Long): AttendanceStats
-
-    /** CSV export scope (PLAN.md §7 milestone 13): one row per (session, student) attendance record for a lesson, newest session first. */
-    suspend fun getExportRowsForLesson(lessonId: Long): List<LessonExportRow>
 }
 
 data class StudentAttendanceHistoryEntry(
     val record: AttendanceRecordEntity,
-    val session: AttendanceSessionEntity,
-    val lessonTitle: String
-)
-
-data class CalendarSessionEntry(
-    val session: AttendanceSessionEntity,
     val lessonTitle: String
 )
 
@@ -59,10 +42,3 @@ data class AttendanceStats(val presentCount: Int, val totalCount: Int) {
     /** 0f (not NaN) when there are no records yet, so the UI can show "0%" instead of crashing. */
     val presentRate: Float get() = if (totalCount == 0) 0f else presentCount.toFloat() / totalCount
 }
-
-data class LessonExportRow(
-    val sessionDate: Long,
-    val studentName: String,
-    val status: AttendanceStatus,
-    val absenceReason: String?
-)

@@ -7,18 +7,18 @@ import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 /**
- * One row per enrolled student per session. References `studentId` directly
- * (not `enrollmentId`) so a student's attendance history survives even if
- * they're later removed from the lesson's roster — see PLAN.md §3, roadblock #5.
+ * One row per student per lesson. References [studentId] directly (not
+ * enrollment) so a student's attendance history survives even if they're
+ * later removed from the category roster.
  */
 @Serializable
 @Entity(
     tableName = "attendance_records",
     foreignKeys = [
         ForeignKey(
-            entity = AttendanceSessionEntity::class,
+            entity = LessonEntity::class,
             parentColumns = ["id"],
-            childColumns = ["sessionId"],
+            childColumns = ["lessonId"],
             onDelete = ForeignKey.CASCADE
         ),
         ForeignKey(
@@ -29,17 +29,19 @@ import kotlinx.serialization.Serializable
         )
     ],
     indices = [
-        Index("sessionId"),
+        Index("lessonId"),
         Index("studentId"),
-        Index(value = ["sessionId", "studentId"], unique = true)
+        Index(value = ["lessonId", "studentId"], unique = true)
     ]
 )
 data class AttendanceRecordEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0L,
-    val sessionId: Long,
+    val lessonId: Long,
     val studentId: Long,
     val status: AttendanceStatus,
     /** Free-text reason; relevant when [status] is ABSENT or EXCUSED. */
     val absenceReason: String? = null,
+    /** Whether the student completed the lesson. Only settable when status = PRESENT. */
+    val completed: Boolean = false,
     val recordedAt: Long
 )

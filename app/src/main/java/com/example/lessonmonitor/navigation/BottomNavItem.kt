@@ -1,7 +1,6 @@
 package com.example.lessonmonitor.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Settings
@@ -16,7 +15,6 @@ data class BottomNavItem(
 
 val bottomNavItems = listOf(
     BottomNavItem(Routes.DASHBOARD_GRAPH, "Dashboard", Icons.Filled.Dashboard),
-    BottomNavItem(Routes.CALENDAR_GRAPH, "Calendar", Icons.Filled.CalendarMonth),
     BottomNavItem(Routes.STATISTICS_GRAPH, "Statistics", Icons.Filled.Insights),
     BottomNavItem(Routes.SETTINGS_GRAPH, "Settings", Icons.Filled.Settings)
 )

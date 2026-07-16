@@ -16,8 +16,8 @@ class EnrollmentRepositoryImpl @Inject constructor(
     private val studentDao: StudentDao
 ) : EnrollmentRepository {
 
-    override fun getRosterForLesson(lessonId: Long): Flow<List<RosterEntry>> =
-        combine(enrollmentDao.getActiveForLesson(lessonId), studentDao.getAll()) { enrollments, students ->
+    override fun getRosterForCategory(categoryId: Long): Flow<List<RosterEntry>> =
+        combine(enrollmentDao.getActiveForCategory(categoryId), studentDao.getAll()) { enrollments, students ->
             enrollments
                 .mapNotNull { enrollment ->
                     students.find { it.id == enrollment.studentId }?.let { student ->
@@ -27,10 +27,10 @@ class EnrollmentRepositoryImpl @Inject constructor(
                 .sortedBy { it.student.name.lowercase() }
         }
 
-    override suspend fun enroll(lessonId: Long, studentId: Long) {
+    override suspend fun enroll(categoryId: Long, studentId: Long) {
         val now = System.currentTimeMillis()
         enrollmentDao.upsert(
-            EnrollmentEntity(lessonId = lessonId, studentId = studentId, enrolledAt = now, active = true)
+            EnrollmentEntity(categoryId = categoryId, studentId = studentId, enrolledAt = now, active = true)
         )
     }
 

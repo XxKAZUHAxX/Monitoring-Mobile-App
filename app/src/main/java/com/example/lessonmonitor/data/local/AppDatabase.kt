@@ -5,14 +5,12 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.lessonmonitor.data.local.converter.Converters
 import com.example.lessonmonitor.data.local.dao.AttendanceRecordDao
-import com.example.lessonmonitor.data.local.dao.AttendanceSessionDao
 import com.example.lessonmonitor.data.local.dao.CategoryDao
 import com.example.lessonmonitor.data.local.dao.EnrollmentDao
 import com.example.lessonmonitor.data.local.dao.LessonDao
 import com.example.lessonmonitor.data.local.dao.StudentDao
 import com.example.lessonmonitor.data.local.dao.UserDao
 import com.example.lessonmonitor.data.local.entity.AttendanceRecordEntity
-import com.example.lessonmonitor.data.local.entity.AttendanceSessionEntity
 import com.example.lessonmonitor.data.local.entity.CategoryEntity
 import com.example.lessonmonitor.data.local.entity.EnrollmentEntity
 import com.example.lessonmonitor.data.local.entity.LessonEntity
@@ -20,10 +18,13 @@ import com.example.lessonmonitor.data.local.entity.StudentEntity
 import com.example.lessonmonitor.data.local.entity.UserEntity
 
 /**
- * Room schema per PLAN.md §2. Version 1 — the very first schema; bump this
- * and add a `Migration` (kept in this file/companion object) whenever a
- * field/table changes after Phase 1 ships, rather than relying on a
- * destructive fallback that would wipe user data.
+ * Room database for Lesson Monitor.
+ *
+ * Version 2: AttendanceSessionEntity merged into LessonEntity, enrollment
+ * moved from lesson-level to category-level, recurring lesson fields removed,
+ * sortOrder added to CategoryEntity and LessonEntity, completed added to
+ * AttendanceRecordEntity. Destructive migration — beta app, data preservation
+ * is out of scope for this rework.
  */
 @Database(
     entities = [
@@ -32,10 +33,9 @@ import com.example.lessonmonitor.data.local.entity.UserEntity
         LessonEntity::class,
         StudentEntity::class,
         EnrollmentEntity::class,
-        AttendanceSessionEntity::class,
         AttendanceRecordEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -45,7 +45,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun lessonDao(): LessonDao
     abstract fun studentDao(): StudentDao
     abstract fun enrollmentDao(): EnrollmentDao
-    abstract fun attendanceSessionDao(): AttendanceSessionDao
     abstract fun attendanceRecordDao(): AttendanceRecordDao
 
     companion object {

@@ -1,7 +1,6 @@
 package com.example.lessonmonitor.data.repository
 
 import com.example.lessonmonitor.data.local.dao.AttendanceRecordDao
-import com.example.lessonmonitor.data.local.dao.AttendanceSessionDao
 import com.example.lessonmonitor.data.local.dao.CategoryDao
 import com.example.lessonmonitor.data.local.entity.CategoryEntity
 import com.example.lessonmonitor.domain.repository.CategoryDeleteImpact
@@ -13,7 +12,6 @@ import javax.inject.Singleton
 @Singleton
 class CategoryRepositoryImpl @Inject constructor(
     private val categoryDao: CategoryDao,
-    private val attendanceSessionDao: AttendanceSessionDao,
     private val attendanceRecordDao: AttendanceRecordDao
 ) : CategoryRepository {
 
@@ -25,12 +23,14 @@ class CategoryRepositoryImpl @Inject constructor(
 
     override suspend fun create(name: String, description: String?, color: Int?, icon: String?): Long {
         val now = System.currentTimeMillis()
+        val sortOrder = (categoryDao.getMaxSortOrder() ?: -1) + 1
         return categoryDao.insert(
             CategoryEntity(
                 name = name,
                 description = description,
                 color = color,
                 icon = icon,
+                sortOrder = sortOrder,
                 createdAt = now,
                 updatedAt = now
             )
@@ -47,7 +47,18 @@ class CategoryRepositoryImpl @Inject constructor(
 
     override suspend fun getDeleteImpact(categoryId: Long): CategoryDeleteImpact = CategoryDeleteImpact(
         lessonCount = categoryDao.countLessons(categoryId),
-        sessionCount = attendanceSessionDao.countForCategory(categoryId),
         recordCount = attendanceRecordDao.countForCategory(categoryId)
     )
+
+    override suspend fun getMaxSortOrder(): Int? = categoryDao.getMaxSortOrder()
+
+    override suspend fun updateSortOrder(categoryId: Long, sortOrder: Int) {
+        categoryDao.updateSortOrder(categoryId, sortOrder)
+    }
+
+    override suspend fun reorderCategories(orderedIds: List<Long>) {
+        orderedIds.forEachIndexed { index, categoryId ->
+            categoryDao.updateSortOrder(categoryId, index)
+        }
+    }
 }
