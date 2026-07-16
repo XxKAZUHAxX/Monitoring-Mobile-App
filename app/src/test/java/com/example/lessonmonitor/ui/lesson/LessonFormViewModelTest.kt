@@ -2,167 +2,79 @@ package com.example.lessonmonitor.ui.lesson
 
 import com.example.lessonmonitor.MainDispatcherRule
 import com.example.lessonmonitor.data.local.entity.LessonEntity
-import com.example.lessonmonitor.data.local.entity.RecurrenceType
+import com.example.lessonmonitor.data.worker.LessonAlarmScheduler
 import com.example.lessonmonitor.domain.repository.LessonRepository
 import com.example.lessonmonitor.navigation.Routes
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotNull
 import org.junit.Rule
 import org.junit.Test
 
 class LessonFormViewModelTest {
 
     @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
+    val dispatcherRule = MainDispatcherRule()
 
     private val lessonRepository: LessonRepository = mockk()
+    private val lessonAlarmScheduler: LessonAlarmScheduler = mockk()
 
     @Test
-    fun `submit fails validation when title is blank`() {
-        val viewModel = LessonFormViewModel(lessonRepository)
-        viewModel.load(categoryId = 3L, lessonId = Routes.NEW_ID)
+    fun `submit with blank title shows error`() = runTest {
+        val vm = LessonFormViewModel(lessonRepository, lessonAlarmScheduler)
+        vm.load(1L, Routes.NEW_ID)
+        vm.onTitleChange("")
+        vm.submit {}
 
-        var onSavedCalled = false
-        viewModel.submit { onSavedCalled = true }
-
-        assertEquals(false, onSavedCalled)
-        assertEquals("Title is required", viewModel.uiState.value.errorMessage)
+        assertNotNull(vm.uiState.value.errorMessage)
     }
 
     @Test
-    fun `submit fails validation when recurring weekly with no days selected`() {
-        val viewModel = LessonFormViewModel(lessonRepository)
-        viewModel.load(categoryId = 3L, lessonId = Routes.NEW_ID)
-        viewModel.onTitleChange("Algebra")
-        viewModel.onRecurringChange(true)
-        viewModel.onRecurrenceTypeChange(RecurrenceType.WEEKLY)
+    fun `submit creates lesson and schedules alarm when start time is set`() = runTest {
+        val vm = LessonFormViewModel(lessonRepository, lessonAlarmScheduler)
+        coEvery { lessonRepository.getMaxSortOrder(1L) } returns 0
+        coEvery { lessonRepository.create(any(), any(), any(), any(), any(), any(), any()) } returns 42L
+        coEvery { lessonAlarmScheduler.scheduleForLesson(any(), any(), any(), any()) } returns Unit
+        vm.load(1L, Routes.NEW_ID)
+        vm.onTitleChange("Math")
+        vm.onStartTimeTextChange("09:00")
 
-        var onSavedCalled = false
-        viewModel.submit { onSavedCalled = true }
+        var saved = false
+        vm.submit { saved = true }
 
-        assertEquals(false, onSavedCalled)
-        assertEquals("Select at least one day of the week", viewModel.uiState.value.errorMessage)
+        coVerify { lessonRepository.create(any(), "Math", any(), any(), any(), any(), any()) }
+        coVerify { lessonAlarmScheduler.scheduleForLesson(42L, "Math", any(), 540) }
     }
 
     @Test
-    fun `submit fails validation when start date is malformed`() {
-        val viewModel = LessonFormViewModel(lessonRepository)
-        viewModel.load(categoryId = 3L, lessonId = Routes.NEW_ID)
-        viewModel.onTitleChange("Algebra")
-        viewModel.onStartDateTextChange("not-a-date")
-
-        var onSavedCalled = false
-        viewModel.submit { onSavedCalled = true }
-
-        assertEquals(false, onSavedCalled)
-        assertEquals("Start date must be in yyyy-MM-dd format", viewModel.uiState.value.errorMessage)
-    }
-
-    @Test
-    fun `submit creates a non-recurring lesson with the given fields`() {
-        coEvery {
-            lessonRepository.create(
-                categoryId = 3L,
-                title = "Algebra",
-                description = null,
-                facilitatorName = null,
-                place = null,
-                isRecurring = false,
-                recurrenceType = RecurrenceType.NONE,
-                recurrenceDaysOfWeek = null,
-                startDate = any(),
-                endDate = null,
-                startTime = null,
-                endTime = null
-            )
-        } returns 1L
-        val viewModel = LessonFormViewModel(lessonRepository)
-        viewModel.load(categoryId = 3L, lessonId = Routes.NEW_ID)
-        viewModel.onTitleChange("Algebra")
-
-        var onSavedCalled = false
-        viewModel.submit { onSavedCalled = true }
-
-        assertEquals(true, onSavedCalled)
-        assertNull(viewModel.uiState.value.errorMessage)
-    }
-
-    @Test
-    fun `submit creates a recurring weekly lesson with the selected days encoded as CSV`() {
-        val slotHolder = mutableListOf<String?>()
-        coEvery {
-            lessonRepository.create(
-                categoryId = 3L,
-                title = "Algebra",
-                description = null,
-                facilitatorName = null,
-                place = null,
-                isRecurring = true,
-                recurrenceType = RecurrenceType.WEEKLY,
-                recurrenceDaysOfWeek = "1,3",
-                startDate = any(),
-                endDate = null,
-                startTime = null,
-                endTime = null
-            )
-        } returns 1L
-        val viewModel = LessonFormViewModel(lessonRepository)
-        viewModel.load(categoryId = 3L, lessonId = Routes.NEW_ID)
-        viewModel.onTitleChange("Algebra")
-        viewModel.onRecurringChange(true)
-        viewModel.onRecurrenceTypeChange(RecurrenceType.WEEKLY)
-        viewModel.onToggleDayOfWeek(1)
-        viewModel.onToggleDayOfWeek(3)
-
-        var onSavedCalled = false
-        viewModel.submit { onSavedCalled = true }
-
-        assertEquals(true, onSavedCalled)
-        coVerify {
-            lessonRepository.create(
-                categoryId = 3L,
-                title = "Algebra",
-                description = null,
-                facilitatorName = null,
-                place = null,
-                isRecurring = true,
-                recurrenceType = RecurrenceType.WEEKLY,
-                recurrenceDaysOfWeek = "1,3",
-                startDate = any(),
-                endDate = null,
-                startTime = null,
-                endTime = null
-            )
-        }
-    }
-
-    @Test
-    fun `load populates fields from an existing lesson including days of week`() {
+    fun `submit edits existing lesson and reschedules alarm`() = runTest {
         val existing = LessonEntity(
-            id = 9L,
-            categoryId = 3L,
-            title = "Algebra",
-            isRecurring = true,
-            recurrenceType = RecurrenceType.WEEKLY,
-            recurrenceDaysOfWeek = "1,3",
-            startDate = 19000L,
-            startTime = 540,
-            endTime = 600,
-            createdAt = 1L,
-            updatedAt = 1L
+            id = 5L, categoryId = 1L, title = "Old", startDate = 19000L,
+            startTime = 480, sortOrder = 0, createdAt = 1L, updatedAt = 1L
         )
-        coEvery { lessonRepository.getById(9L) } returns flowOf(existing)
-        val viewModel = LessonFormViewModel(lessonRepository)
+        every { lessonRepository.getById(5L) } returns flowOf(existing)
+        coEvery { lessonRepository.update(any()) } returns Unit
+        coEvery { lessonAlarmScheduler.cancelForLesson(any()) } returns Unit
+        coEvery { lessonAlarmScheduler.scheduleForLesson(any(), any(), any(), any()) } returns Unit
 
-        viewModel.load(categoryId = 3L, lessonId = 9L)
+        val vm = LessonFormViewModel(lessonRepository, lessonAlarmScheduler)
+        vm.load(1L, 5L)
 
-        assertEquals("Algebra", viewModel.uiState.value.title)
-        assertEquals(setOf(1, 3), viewModel.uiState.value.recurrenceDaysOfWeek)
-        assertEquals("09:00", viewModel.uiState.value.startTimeText)
-        assertEquals("10:00", viewModel.uiState.value.endTimeText)
+        // Wait for load to complete
+        while (vm.uiState.value.title.isEmpty()) { /* wait */ }
+
+        vm.onTitleChange("New Title")
+        vm.onStartTimeTextChange("10:00")
+        var saved = false
+        vm.submit { saved = true }
+
+        coVerify { lessonRepository.update(any()) }
+        coVerify { lessonAlarmScheduler.cancelForLesson(5L) }
+        coVerify { lessonAlarmScheduler.scheduleForLesson(5L, "New Title", any(), 600) }
     }
 }

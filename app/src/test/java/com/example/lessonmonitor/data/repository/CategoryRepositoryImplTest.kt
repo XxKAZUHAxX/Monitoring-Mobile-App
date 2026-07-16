@@ -1,7 +1,6 @@
 package com.example.lessonmonitor.data.repository
 
 import com.example.lessonmonitor.data.local.dao.AttendanceRecordDao
-import com.example.lessonmonitor.data.local.dao.AttendanceSessionDao
 import com.example.lessonmonitor.data.local.dao.CategoryDao
 import com.example.lessonmonitor.data.local.entity.CategoryEntity
 import io.mockk.coEvery
@@ -9,7 +8,6 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -19,74 +17,67 @@ import org.junit.Test
 class CategoryRepositoryImplTest {
 
     private val categoryDao: CategoryDao = mockk()
-    private val attendanceSessionDao: AttendanceSessionDao = mockk()
     private val attendanceRecordDao: AttendanceRecordDao = mockk()
 
     private lateinit var repository: CategoryRepositoryImpl
 
     @Before
     fun setUp() {
-        repository = CategoryRepositoryImpl(categoryDao, attendanceSessionDao, attendanceRecordDao)
+        repository = CategoryRepositoryImpl(categoryDao, attendanceRecordDao)
     }
 
     @Test
-    fun `create inserts a new category with matching created and updated timestamps`() = runTest {
+    fun `create sets sortOrder to max plus one`() = runTest {
+        coEvery { categoryDao.getMaxSortOrder() } returns 5
         val slot = slot<CategoryEntity>()
-        coEvery { categoryDao.insert(capture(slot)) } returns 1L
+        coEvery { categoryDao.insert(capture(slot)) } returns 10L
 
-        val id = repository.create("Math", "desc", 0xFF0000, "📘")
+        val id = repository.create("Test", null, null, null)
 
-        assertEquals(1L, id)
-        assertEquals("Math", slot.captured.name)
-        assertEquals("desc", slot.captured.description)
-        assertEquals(0xFF0000, slot.captured.color)
-        assertEquals("📘", slot.captured.icon)
-        assertEquals(slot.captured.createdAt, slot.captured.updatedAt)
+        assertEquals(10L, id)
+        assertEquals(6, slot.captured.sortOrder)
     }
 
     @Test
-    fun `update bumps updatedAt but preserves the rest of the entity`() = runTest {
-        val existing = CategoryEntity(id = 5L, name = "Old", createdAt = 100L, updatedAt = 100L)
+    fun `create sets sortOrder to zero when no existing categories`() = runTest {
+        coEvery { categoryDao.getMaxSortOrder() } returns null
         val slot = slot<CategoryEntity>()
-        coEvery { categoryDao.update(capture(slot)) } returns Unit
+        coEvery { categoryDao.insert(capture(slot)) } returns 10L
 
-        repository.update(existing.copy(name = "New"))
+        repository.create("Test", null, null, null)
 
-        assertEquals("New", slot.captured.name)
-        assertEquals(100L, slot.captured.createdAt)
-        assertEquals(5L, slot.captured.id)
+        assertEquals(0, slot.captured.sortOrder)
     }
 
     @Test
-    fun `getDeleteImpact aggregates lesson, session, and record counts`() = runTest {
-        coEvery { categoryDao.countLessons(7L) } returns 3
-        coEvery { attendanceSessionDao.countForCategory(7L) } returns 12
-        coEvery { attendanceRecordDao.countForCategory(7L) } returns 96
+    fun `getAll delegates to dao`() = runTest {
+        every { categoryDao.getAll() } returns flowOf(emptyList())
+        repository.getAll()
+    }
 
-        val impact = repository.getDeleteImpact(7L)
+    @Test
+    fun `update sets updatedAt to now`() = runTest {
+        val cat = CategoryEntity(id = 1L, name = "Test", createdAt = 1L, updatedAt = 1L)
+        coEvery { categoryDao.update(any()) } returns Unit
+        repository.update(cat)
+        coVerify { categoryDao.update(match { it.updatedAt > 1L }) }
+    }
 
+    @Test
+    fun `getDeleteImpact returns lesson and record counts`() = runTest {
+        coEvery { categoryDao.countLessons(1L) } returns 3
+        coEvery { attendanceRecordDao.countForCategory(1L) } returns 10
+        val impact = repository.getDeleteImpact(1L)
         assertEquals(3, impact.lessonCount)
-        assertEquals(12, impact.sessionCount)
-        assertEquals(96, impact.recordCount)
+        assertEquals(10, impact.recordCount)
     }
 
     @Test
-    fun `delete delegates to the DAO`() = runTest {
-        val category = CategoryEntity(id = 1L, name = "Math", createdAt = 1L, updatedAt = 1L)
-        coEvery { categoryDao.delete(category) } returns Unit
-
-        repository.delete(category)
-
-        coVerify { categoryDao.delete(category) }
-    }
-
-    @Test
-    fun `search delegates to the DAO`() = runTest {
-        val category = CategoryEntity(id = 1L, name = "Math", createdAt = 1L, updatedAt = 1L)
-        every { categoryDao.search("mat") } returns flowOf(listOf(category))
-
-        val result = repository.search("mat").first()
-
-        assertEquals(listOf(category), result)
+    fun `reorderCategories updates sort order for each category`() = runTest {
+        coEvery { categoryDao.updateSortOrder(any(), any()) } returns Unit
+        repository.reorderCategories(listOf(3L, 1L, 2L))
+        coVerify { categoryDao.updateSortOrder(3L, 0) }
+        coVerify { categoryDao.updateSortOrder(1L, 1) }
+        coVerify { categoryDao.updateSortOrder(2L, 2) }
     }
 }

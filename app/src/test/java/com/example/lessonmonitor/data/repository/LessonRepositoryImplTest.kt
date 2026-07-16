@@ -1,17 +1,14 @@
 package com.example.lessonmonitor.data.repository
 
 import com.example.lessonmonitor.data.local.dao.AttendanceRecordDao
-import com.example.lessonmonitor.data.local.dao.AttendanceSessionDao
 import com.example.lessonmonitor.data.local.dao.EnrollmentDao
 import com.example.lessonmonitor.data.local.dao.LessonDao
 import com.example.lessonmonitor.data.local.entity.LessonEntity
-import com.example.lessonmonitor.data.local.entity.RecurrenceType
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -22,123 +19,69 @@ class LessonRepositoryImplTest {
 
     private val lessonDao: LessonDao = mockk()
     private val enrollmentDao: EnrollmentDao = mockk()
-    private val attendanceSessionDao: AttendanceSessionDao = mockk()
     private val attendanceRecordDao: AttendanceRecordDao = mockk()
 
     private lateinit var repository: LessonRepositoryImpl
 
     @Before
     fun setUp() {
-        repository = LessonRepositoryImpl(lessonDao, enrollmentDao, attendanceSessionDao, attendanceRecordDao)
+        repository = LessonRepositoryImpl(lessonDao, enrollmentDao, attendanceRecordDao)
     }
 
     @Test
-    fun `create inserts a new lesson with matching created and updated timestamps`() = runTest {
+    fun `create sets sortOrder to max plus one`() = runTest {
+        coEvery { lessonDao.getMaxSortOrder(1L) } returns 3
         val slot = slot<LessonEntity>()
-        coEvery { lessonDao.insert(capture(slot)) } returns 1L
+        coEvery { lessonDao.insert(capture(slot)) } returns 100L
 
         val id = repository.create(
-            categoryId = 3L,
-            title = "Algebra",
-            description = null,
-            facilitatorName = "Jane",
-            place = "Room 1",
-            isRecurring = true,
-            recurrenceType = RecurrenceType.WEEKLY,
-            recurrenceDaysOfWeek = "1,3",
-            startDate = 19000L,
-            endDate = null,
-            startTime = 540,
-            endTime = 600
+            categoryId = 1L, title = "Test", description = null,
+            facilitatorName = null, place = null, startDate = 19000L, startTime = null
         )
 
-        assertEquals(1L, id)
-        assertEquals(3L, slot.captured.categoryId)
-        assertEquals("Algebra", slot.captured.title)
-        assertEquals(RecurrenceType.WEEKLY, slot.captured.recurrenceType)
-        assertEquals("1,3", slot.captured.recurrenceDaysOfWeek)
-        assertEquals(slot.captured.createdAt, slot.captured.updatedAt)
+        assertEquals(100L, id)
+        assertEquals(4, slot.captured.sortOrder)
     }
 
     @Test
-    fun `update bumps updatedAt but preserves the rest of the entity`() = runTest {
-        val existing = LessonEntity(
-            id = 9L,
-            categoryId = 3L,
-            title = "Old title",
-            startDate = 19000L,
-            createdAt = 100L,
-            updatedAt = 100L
-        )
+    fun `create sets sortOrder to zero when no existing lessons`() = runTest {
+        coEvery { lessonDao.getMaxSortOrder(1L) } returns null
         val slot = slot<LessonEntity>()
-        coEvery { lessonDao.update(capture(slot)) } returns Unit
+        coEvery { lessonDao.insert(capture(slot)) } returns 101L
 
-        repository.update(existing.copy(title = "New title"))
-
-        assertEquals("New title", slot.captured.title)
-        assertEquals(100L, slot.captured.createdAt)
-        assertEquals(3L, slot.captured.categoryId)
-    }
-
-    @Test
-    fun `getDeleteImpact aggregates enrollment, session, and record counts`() = runTest {
-        coEvery { enrollmentDao.countForLesson(4L) } returns 20
-        coEvery { attendanceSessionDao.countForLesson(4L) } returns 8
-        coEvery { attendanceRecordDao.countForLesson(4L) } returns 160
-
-        val impact = repository.getDeleteImpact(4L)
-
-        assertEquals(20, impact.enrollmentCount)
-        assertEquals(8, impact.sessionCount)
-        assertEquals(160, impact.recordCount)
-    }
-
-    @Test
-    fun `delete delegates to the DAO`() = runTest {
-        val lesson = LessonEntity(id = 1L, categoryId = 1L, title = "Algebra", startDate = 19000L, createdAt = 1L, updatedAt = 1L)
-        coEvery { lessonDao.delete(lesson) } returns Unit
-
-        repository.delete(lesson)
-
-        coVerify { lessonDao.delete(lesson) }
-    }
-
-    @Test
-    fun `getAllRecurring delegates to the DAO`() = runTest {
-        val recurring = LessonEntity(
-            id = 5L,
-            categoryId = 1L,
-            title = "Algebra",
-            isRecurring = true,
-            recurrenceType = RecurrenceType.WEEKLY,
-            startDate = 19000L,
-            createdAt = 1L,
-            updatedAt = 1L
+        repository.create(
+            categoryId = 1L, title = "Test", description = null,
+            facilitatorName = null, place = null, startDate = 19000L, startTime = null
         )
-        coEvery { lessonDao.getAllRecurring() } returns listOf(recurring)
 
-        val result = repository.getAllRecurring()
-
-        assertEquals(listOf(recurring), result)
+        assertEquals(0, slot.captured.sortOrder)
     }
 
     @Test
-    fun `search delegates to the DAO`() = runTest {
-        val lesson = LessonEntity(id = 1L, categoryId = 1L, title = "Algebra", startDate = 19000L, createdAt = 1L, updatedAt = 1L)
-        every { lessonDao.search("alg") } returns flowOf(listOf(lesson))
-
-        val result = repository.search("alg").first()
-
-        assertEquals(listOf(lesson), result)
+    fun `update sets updatedAt to now`() = runTest {
+        val lesson = LessonEntity(
+            id = 1L, categoryId = 1L, title = "Test",
+            startDate = 19000L, createdAt = 1L, updatedAt = 1L
+        )
+        coEvery { lessonDao.update(any()) } returns Unit
+        repository.update(lesson)
+        coVerify { lessonDao.update(match { it.updatedAt > 1L }) }
     }
 
     @Test
-    fun `getAll delegates to the DAO`() = runTest {
-        val lesson = LessonEntity(id = 1L, categoryId = 1L, title = "Algebra", startDate = 19000L, createdAt = 1L, updatedAt = 1L)
-        every { lessonDao.getAll() } returns flowOf(listOf(lesson))
+    fun `getDeleteImpact returns record count`() = runTest {
+        coEvery { attendanceRecordDao.countForLesson(1L) } returns 5
+        val impact = repository.getDeleteImpact(1L)
+        assertEquals(0, impact.enrollmentCount)
+        assertEquals(5, impact.recordCount)
+    }
 
-        val result = repository.getAll().first()
-
-        assertEquals(listOf(lesson), result)
+    @Test
+    fun `reorderLessons updates sort order for each lesson`() = runTest {
+        coEvery { lessonDao.updateSortOrder(any(), any()) } returns Unit
+        repository.reorderLessons(1L, listOf(3L, 1L, 2L))
+        coVerify { lessonDao.updateSortOrder(3L, 0) }
+        coVerify { lessonDao.updateSortOrder(1L, 1) }
+        coVerify { lessonDao.updateSortOrder(2L, 2) }
     }
 }

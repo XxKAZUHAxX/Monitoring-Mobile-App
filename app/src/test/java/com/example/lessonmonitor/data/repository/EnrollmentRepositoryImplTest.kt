@@ -4,14 +4,14 @@ import com.example.lessonmonitor.data.local.dao.EnrollmentDao
 import com.example.lessonmonitor.data.local.dao.StudentDao
 import com.example.lessonmonitor.data.local.entity.EnrollmentEntity
 import com.example.lessonmonitor.data.local.entity.StudentEntity
-import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.slot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -28,52 +28,47 @@ class EnrollmentRepositoryImplTest {
     }
 
     @Test
-    fun `getRosterForLesson joins enrollments with their students and sorts by name`() = runTest {
-        val ana = StudentEntity(id = 1L, name = "Ana", createdAt = 1L, updatedAt = 1L)
-        val bo = StudentEntity(id = 2L, name = "Bo", createdAt = 1L, updatedAt = 1L)
-        val enrollmentBo = EnrollmentEntity(id = 10L, lessonId = 5L, studentId = 2L, enrolledAt = 1L)
-        val enrollmentAna = EnrollmentEntity(id = 11L, lessonId = 5L, studentId = 1L, enrolledAt = 1L)
-        every { enrollmentDao.getActiveForLesson(5L) } returns flowOf(listOf(enrollmentBo, enrollmentAna))
-        every { studentDao.getAll() } returns flowOf(listOf(ana, bo))
+    fun `getRosterForCategory joins active enrollments with student profiles, sorted by name`() = runTest {
+        val enrollment1 = EnrollmentEntity(id = 1L, categoryId = 5L, studentId = 10L, enrolledAt = 1L)
+        val enrollment2 = EnrollmentEntity(id = 2L, categoryId = 5L, studentId = 11L, enrolledAt = 1L)
+        every { enrollmentDao.getActiveForCategory(5L) } returns flowOf(listOf(enrollment1, enrollment2))
+        every { studentDao.getAll() } returns flowOf(
+            listOf(
+                StudentEntity(id = 10L, name = "Zoe", createdAt = 1L, updatedAt = 1L),
+                StudentEntity(id = 11L, name = "Ada", createdAt = 1L, updatedAt = 1L)
+            )
+        )
 
-        val roster = repository.getRosterForLesson(5L).first()
+        val roster = repository.getRosterForCategory(5L).first()
 
-        assertEquals(listOf("Ana", "Bo"), roster.map { it.student.name })
+        assertEquals(listOf("Ada", "Zoe"), roster.map { it.student.name })
     }
 
     @Test
-    fun `getRosterForLesson drops enrollments whose student can't be found`() = runTest {
-        val ana = StudentEntity(id = 1L, name = "Ana", createdAt = 1L, updatedAt = 1L)
-        val orphanEnrollment = EnrollmentEntity(id = 10L, lessonId = 5L, studentId = 99L, enrolledAt = 1L)
-        every { enrollmentDao.getActiveForLesson(5L) } returns flowOf(listOf(orphanEnrollment))
-        every { studentDao.getAll() } returns flowOf(listOf(ana))
+    fun `getRosterForCategory omits enrollments whose student is missing`() = runTest {
+        every { enrollmentDao.getActiveForCategory(5L) } returns flowOf(
+            listOf(EnrollmentEntity(id = 1L, categoryId = 5L, studentId = 99L, enrolledAt = 1L))
+        )
+        every { studentDao.getAll() } returns flowOf(emptyList())
 
-        val roster = repository.getRosterForLesson(5L).first()
+        val roster = repository.getRosterForCategory(5L).first()
 
-        assertEquals(emptyList<Any>(), roster)
+        assertTrue(roster.isEmpty())
     }
 
     @Test
-    fun `enroll upserts an active enrollment`() = runTest {
-        val slot = slot<EnrollmentEntity>()
-        coEvery { enrollmentDao.upsert(capture(slot)) } returns 1L
+    fun `enroll upserts an active enrollment for the category`() = runTest {
+        repository.enroll(categoryId = 5L, studentId = 10L)
 
-        repository.enroll(lessonId = 5L, studentId = 1L)
-
-        assertEquals(5L, slot.captured.lessonId)
-        assertEquals(1L, slot.captured.studentId)
-        assertEquals(true, slot.captured.active)
+        coVerify { enrollmentDao.upsert(match { it.categoryId == 5L && it.studentId == 10L && it.active }) }
     }
 
     @Test
-    fun `unenroll deactivates the enrollment without deleting it`() = runTest {
-        val enrollment = EnrollmentEntity(id = 10L, lessonId = 5L, studentId = 1L, enrolledAt = 1L, active = true)
-        val slot = slot<EnrollmentEntity>()
-        coEvery { enrollmentDao.update(capture(slot)) } returns Unit
+    fun `unenroll sets active to false`() = runTest {
+        val enrollment = EnrollmentEntity(id = 1L, categoryId = 5L, studentId = 10L, enrolledAt = 1L, active = true)
 
         repository.unenroll(enrollment)
 
-        assertEquals(false, slot.captured.active)
-        assertEquals(10L, slot.captured.id)
+        coVerify { enrollmentDao.update(match { it.active == false }) }
     }
 }
