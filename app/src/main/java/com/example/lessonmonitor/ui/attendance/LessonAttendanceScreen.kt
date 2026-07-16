@@ -12,10 +12,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -35,6 +39,7 @@ import com.example.lessonmonitor.data.local.entity.AttendanceStatus
 @Composable
 fun LessonAttendanceScreen(
     lessonId: Long,
+    onInfoClick: (lessonId: Long) -> Unit = {},
     viewModel: LessonAttendanceViewModel = hiltViewModel()
 ) {
     LaunchedEffect(lessonId) { viewModel.load() }
@@ -42,7 +47,14 @@ fun LessonAttendanceScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("${uiState.lessonTitle} — ${uiState.lessonDate}") })
+            TopAppBar(
+                title = { Text("${uiState.lessonTitle} — ${uiState.lessonDate}") },
+                actions = {
+                    IconButton(onClick = { onInfoClick(lessonId) }) {
+                        Icon(Icons.Default.Info, contentDescription = "Lesson info")
+                    }
+                }
+            )
         }
     ) { innerPadding ->
         if (uiState.students.isEmpty()) {

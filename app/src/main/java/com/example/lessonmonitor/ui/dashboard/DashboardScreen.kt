@@ -121,31 +121,33 @@ private fun CategoryRow(
     var menuExpanded by remember { mutableStateOf(false) }
 
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(category.name, style = MaterialTheme.typography.titleMedium)
-                category.description?.takeIf { it.isNotBlank() }?.let { description ->
-                    Text(description, style = MaterialTheme.typography.bodySmall)
+        Box {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(category.name, style = MaterialTheme.typography.titleMedium)
+                    category.description?.takeIf { it.isNotBlank() }?.let { description ->
+                        Text(description, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
-            }
-            Box {
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(Icons.Default.MoreVert, contentDescription = "More options")
                 }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Edit") },
-                        onClick = { menuExpanded = false; onEditClick() }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Delete") },
-                        onClick = { menuExpanded = false; onDeleteClick() }
-                    )
-                }
+            }
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenuItem(
+                    text = { Text("Edit") },
+                    onClick = { menuExpanded = false; onEditClick() }
+                )
+                DropdownMenuItem(
+                    text = { Text("Delete") },
+                    onClick = { menuExpanded = false; onDeleteClick() }
+                )
             }
         }
     }

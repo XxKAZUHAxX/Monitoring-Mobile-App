@@ -22,6 +22,7 @@ import androidx.navigation.compose.rememberNavController
  * its own back stack/state when switching tabs.
  *
  * Tab re-tap pops the selected tab's inner back stack to its root destination.
+ * Tapping the same tab when already on it does nothing else.
  */
 @Composable
 fun MainScreen(rootNavController: NavHostController) {
@@ -33,13 +34,18 @@ fun MainScreen(rootNavController: NavHostController) {
                 val backStackEntry by innerNavController.currentBackStackEntryAsState()
                 val currentDestination = backStackEntry?.destination
                 bottomNavItems.forEach { item ->
+                    // selected is true when the current destination belongs to this tab's graph
                     val selected = currentDestination?.hierarchy?.any { it.route == item.graphRoute } == true
                     NavigationBarItem(
                         selected = selected,
                         onClick = {
+                            if (currentDestination == null) return@NavigationBarItem
                             if (selected) {
-                                // Re-tap: pop to the graph's start destination.
-                                innerNavController.popBackStack(item.graphRoute, inclusive = false)
+                                // Re-tap: pop to the graph root if we're deeper than it.
+                                // If route == graphRoute we're already at root — do nothing.
+                                if (currentDestination.route != item.graphRoute) {
+                                    innerNavController.popBackStack(item.graphRoute, inclusive = false)
+                                }
                             } else {
                                 innerNavController.navigate(item.graphRoute) {
                                     popUpTo(innerNavController.graph.findStartDestination().id) {

@@ -48,7 +48,6 @@ fun NavGraphBuilder.dashboardGraph(navController: NavHostController) {
             LessonsListScreen(
                 categoryId = categoryId,
                 onLessonClick = { lessonId -> navController.navigate(Routes.lessonAttendance(lessonId)) },
-                onLessonInfoClick = { lessonId -> navController.navigate(Routes.lessonInfo(lessonId)) },
                 onAddLesson = { navController.navigate(Routes.lessonForm(categoryId)) },
                 onAddStudent = { navController.navigate(Routes.studentEnrollment(categoryId)) },
                 onStudentClick = { studentId -> navController.navigate(Routes.studentDetail(studentId)) }
@@ -83,7 +82,10 @@ fun NavGraphBuilder.dashboardGraph(navController: NavHostController) {
             )
         ) { backStackEntry ->
             val lessonId = backStackEntry.arguments?.getLong("lessonId") ?: Routes.NEW_ID
-            LessonAttendanceScreen(lessonId = lessonId)
+            LessonAttendanceScreen(
+                lessonId = lessonId,
+                onInfoClick = { id -> navController.navigate(Routes.lessonInfo(id)) }
+            )
         }
         composable(
             route = Routes.STUDENT_ENROLLMENT_PATTERN,

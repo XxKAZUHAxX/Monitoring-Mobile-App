@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -49,7 +48,6 @@ import java.time.LocalDate
 fun LessonsListScreen(
     categoryId: Long,
     onLessonClick: (lessonId: Long) -> Unit,
-    onLessonInfoClick: (lessonId: Long) -> Unit,
     onAddLesson: () -> Unit,
     onAddStudent: () -> Unit,
     onStudentClick: (studentId: Long) -> Unit,
@@ -90,7 +88,6 @@ fun LessonsListScreen(
                 LessonsTab(
                     lessons = uiState.lessons,
                     onLessonClick = onLessonClick,
-                    onLessonInfoClick = onLessonInfoClick,
                     onEditClick = { /* navigate to edit */ },
                     onDeleteClick = { viewModel.requestDelete(it) }
                 )
@@ -149,7 +146,6 @@ fun LessonsListScreen(
 private fun LessonsTab(
     lessons: List<LessonEntity>,
     onLessonClick: (Long) -> Unit,
-    onLessonInfoClick: (Long) -> Unit,
     onEditClick: (LessonEntity) -> Unit,
     onDeleteClick: (LessonEntity) -> Unit
 ) {
@@ -168,7 +164,6 @@ private fun LessonsTab(
             LessonCard(
                 lesson = lesson,
                 onClick = { onLessonClick(lesson.id) },
-                onInfoClick = { onLessonInfoClick(lesson.id) },
                 onEditClick = { onEditClick(lesson) },
                 onDeleteClick = { onDeleteClick(lesson) }
             )
@@ -180,48 +175,42 @@ private fun LessonsTab(
 private fun LessonCard(
     lesson: LessonEntity,
     onClick: () -> Unit,
-    onInfoClick: () -> Unit,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(lesson.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    IconButton(onClick = onInfoClick) {
-                        Icon(Icons.Default.Info, contentDescription = "Lesson info", tint = MaterialTheme.colorScheme.primary)
+        Box {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(lesson.title, style = MaterialTheme.typography.titleMedium)
+                    val subtitle = listOfNotNull(
+                        lesson.facilitatorName?.takeIf { it.isNotBlank() },
+                        lesson.place?.takeIf { it.isNotBlank() }
+                    ).joinToString(" · ")
+                    if (subtitle.isNotBlank()) {
+                        Text(subtitle, style = MaterialTheme.typography.bodySmall)
                     }
+                    Text(LocalDate.ofEpochDay(lesson.startDate).toString(), style = MaterialTheme.typography.bodySmall)
                 }
-                val subtitle = listOfNotNull(
-                    lesson.facilitatorName?.takeIf { it.isNotBlank() },
-                    lesson.place?.takeIf { it.isNotBlank() }
-                ).joinToString(" · ")
-                if (subtitle.isNotBlank()) {
-                    Text(subtitle, style = MaterialTheme.typography.bodySmall)
-                }
-                Text(LocalDate.ofEpochDay(lesson.startDate).toString(), style = MaterialTheme.typography.bodySmall)
-            }
-            Box {
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(Icons.Default.MoreVert, contentDescription = "More options")
                 }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Edit") },
-                        onClick = { menuExpanded = false; onEditClick() }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Delete") },
-                        onClick = { menuExpanded = false; onDeleteClick() }
-                    )
-                }
+            }
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenuItem(
+                    text = { Text("Edit") },
+                    onClick = { menuExpanded = false; onEditClick() }
+                )
+                DropdownMenuItem(
+                    text = { Text("Delete") },
+                    onClick = { menuExpanded = false; onDeleteClick() }
+                )
             }
         }
     }
@@ -266,26 +255,26 @@ private fun StudentRow(
     var menuExpanded by remember { mutableStateOf(false) }
 
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(entry.student.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            Box {
+        Box {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(entry.student.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 IconButton(onClick = { menuExpanded = true }) {
                     Icon(Icons.Default.MoreVert, contentDescription = "More options")
                 }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Edit") },
-                        onClick = { menuExpanded = false; onEditClick() }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Remove from category") },
-                        onClick = { menuExpanded = false; onRemoveClick() }
-                    )
-                }
+            }
+            DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenuItem(
+                    text = { Text("Edit") },
+                    onClick = { menuExpanded = false; onEditClick() }
+                )
+                DropdownMenuItem(
+                    text = { Text("Remove from category") },
+                    onClick = { menuExpanded = false; onRemoveClick() }
+                )
             }
         }
     }
