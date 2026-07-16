@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.lessonmonitor.domain.repository.StudentAttendanceHistoryEntry
-import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,12 +133,14 @@ private fun HistoryRow(entry: StudentAttendanceHistoryEntry) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text(entry.lessonTitle, style = MaterialTheme.typography.titleSmall)
-            Text(LocalDate.ofEpochDay(entry.session.sessionDate).toString(), style = MaterialTheme.typography.bodySmall)
             Text(entry.record.status.name, style = MaterialTheme.typography.bodyMedium)
             entry.record.absenceReason?.takeIf { it.isNotBlank() }?.let {
                 Text("Reason: $it", style = MaterialTheme.typography.bodySmall)
             }
+            Text(
+                if (entry.record.completed) "Completed" else "Incomplete",
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
-

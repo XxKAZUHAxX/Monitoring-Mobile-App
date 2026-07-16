@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -21,8 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -39,47 +38,98 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatisticsScreen(
+    categoryId: Long = 0L,
+    onCategoryClick: (categoryId: Long) -> Unit,
     onStudentClick: (studentId: Long) -> Unit,
-    onLessonClick: (lessonId: Long) -> Unit,
     viewModel: StatisticsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // Determine view: categories list, per-student breakdown, or student drill-down
+    val showBack = uiState.selectedCategoryId != null
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Statistics") },
+                title = {
+                    Text(
+                        when {
+                            uiState.selectedStudentId != null -> uiState.selectedStudentName
+                            uiState.selectedCategoryId != null -> uiState.selectedCategoryName
+                            else -> "Statistics"
+                        }
+                    )
+                },
+                navigationIcon = {
+                    if (uiState.selectedStudentId != null) {
+                        IconButton(onClick = { viewModel.selectStudent(uiState.selectedStudentId!!) }) {} // no-op, handled below
+                    }
+                    if (showBack) {
+                        IconButton(onClick = {
+                            if (uiState.selectedStudentId != null) {
+                                viewModel.selectStudent(uiState.selectedStudentId)
+                            }
+                            viewModel.backToCategories()
+                        }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
+                    }
+                },
                 actions = {
-                    IconButton(onClick = viewModel::refresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    if (uiState.selectedCategoryId == null) {
+                        IconButton(onClick = viewModel::loadCategories) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        }
                     }
                 }
             )
         }
     ) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            val selectedTabIndex = if (uiState.selectedTab == StatisticsViewModel.Tab.STUDENTS) 0 else 1
-            TabRow(selectedTabIndex = selectedTabIndex) {
-                Tab(
-                    selected = selectedTabIndex == 0,
-                    onClick = { viewModel.onTabSelected(StatisticsViewModel.Tab.STUDENTS) },
-                    text = { Text("Students") }
-                )
-                Tab(
-                    selected = selectedTabIndex == 1,
-                    onClick = { viewModel.onTabSelected(StatisticsViewModel.Tab.LESSONS) },
-                    text = { Text("Lessons") }
-                )
+        if (uiState.isLoading) {
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
+        } else if (uiState.selectedStudentId != null) {
+            // Student drill-down: lessons for this category
+            StudentLessonList(rows = uiState.studentLessonRows)
+        } else if (uiState.selectedCategoryId != null) {
+            // Category selected: per-student stats
+            StudentStatsList(
+                rows = uiState.studentRows,
+                onStudentClick = { viewModel.selectStudent(it) }
+            )
+        } else {
+            // Top level: list of categories
+            CategoryList(
+                categories = uiState.categories,
+                onCategoryClick = { viewModel.selectCategory(it) }
+            )
+        }
+    }
+}
 
-            if (uiState.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+@Composable
+private fun CategoryList(
+    categories: List<StatisticsViewModel.CategoryOverview>,
+    onCategoryClick: (Long) -> Unit
+) {
+    if (categories.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("No categories yet.")
+        }
+        return
+    }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(categories, key = { it.categoryId }) { cat ->
+            Card(onClick = { onCategoryClick(cat.categoryId) }, modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    Text(cat.categoryName, style = MaterialTheme.typography.titleMedium)
+                    Text("${cat.studentCount} students", style = MaterialTheme.typography.bodySmall)
                 }
-            } else if (selectedTabIndex == 0) {
-                StudentStatsList(rows = uiState.studentRows, onStudentClick = onStudentClick)
-            } else {
-                LessonStatsList(rows = uiState.lessonRows, onLessonClick = onLessonClick)
             }
         }
     }
@@ -88,11 +138,11 @@ fun StatisticsScreen(
 @Composable
 private fun StudentStatsList(
     rows: List<StatisticsViewModel.StudentStatRow>,
-    onStudentClick: (studentId: Long) -> Unit
+    onStudentClick: (Long) -> Unit
 ) {
     if (rows.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No students yet.")
+            Text("No students enrolled in this category.")
         }
         return
     }
@@ -102,23 +152,33 @@ private fun StudentStatsList(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(rows, key = { it.studentId }) { row ->
-            AttendanceStatCard(
-                title = row.name,
-                stats = row.stats,
-                onClick = { onStudentClick(row.studentId) }
-            )
+            Card(onClick = { onStudentClick(row.studentId) }, modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    Text(row.name, style = MaterialTheme.typography.titleMedium)
+                    if (row.stats.totalCount == 0) {
+                        Text("No records yet", style = MaterialTheme.typography.bodySmall)
+                    } else {
+                        Text(
+                            "${(row.stats.presentRate * 100).roundToInt()}% present (${row.stats.presentCount}/${row.stats.totalCount})",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            "${row.completedCount} of ${row.totalLessons} completed",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        PercentageBar(fraction = row.stats.presentRate, modifier = Modifier.padding(top = 8.dp))
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun LessonStatsList(
-    rows: List<StatisticsViewModel.LessonStatRow>,
-    onLessonClick: (lessonId: Long) -> Unit
-) {
+private fun StudentLessonList(rows: List<StatisticsViewModel.StudentLessonRow>) {
     if (rows.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No lessons yet.")
+            Text("No lessons in this category.")
         }
         return
     }
@@ -128,40 +188,20 @@ private fun LessonStatsList(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(rows, key = { it.lessonId }) { row ->
-            AttendanceStatCard(
-                title = row.title,
-                stats = row.stats,
-                onClick = { onLessonClick(row.lessonId) }
-            )
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    Text(row.lessonTitle, style = MaterialTheme.typography.titleSmall)
+                    Text("Status: ${row.status}", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        if (row.completed) "Completed" else "Incomplete",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
         }
     }
 }
 
-@Composable
-private fun AttendanceStatCard(title: String, stats: AttendanceStats, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(
-                if (stats.totalCount == 0) {
-                    "No sessions recorded yet"
-                } else {
-                    "${(stats.presentRate * 100).roundToInt()}% present (${stats.presentCount}/${stats.totalCount})"
-                },
-                style = MaterialTheme.typography.bodyMedium
-            )
-            PercentageBar(fraction = stats.presentRate, modifier = Modifier.padding(top = 8.dp))
-        }
-    }
-}
-
-/**
- * Hand-rolled percentage bar (a background track + a fraction-width filled
- * box) instead of Material3's `LinearProgressIndicator` or a charting
- * library — a stable, dependency-free "simple visualization" per the
- * prompt's §H suggestion, consistent with this project's low-risk-dependency
- * pattern (see the manual Calendar month grid, milestone #10).
- */
 @Composable
 private fun PercentageBar(fraction: Float, modifier: Modifier = Modifier) {
     Box(

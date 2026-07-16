@@ -11,12 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.Card
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -48,44 +46,51 @@ fun ExportScreen(viewModel: ExportViewModel = hiltViewModel()) {
     Scaffold(topBar = { TopAppBar(title = { Text("Export") }) }) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             Text(
-                "Tap a lesson to export its attendance history as a CSV file.",
+                "Select categories to export. The CSV will include attendance for all lessons in the selected categories.",
                 modifier = Modifier.padding(16.dp)
             )
             uiState.errorMessage?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp))
             }
-            if (uiState.lessons.isEmpty()) {
+            if (uiState.categories.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No lessons yet.")
+                    Text("No categories yet.")
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(uiState.lessons, key = { it.id }) { lesson ->
-                        Card(
-                            onClick = { viewModel.exportLesson(lesson) },
-                            modifier = Modifier.fillMaxWidth()
+                    items(uiState.categories, key = { it.category.id }) { selectable ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(lesson.title, modifier = Modifier.weight(1f))
-                                if (uiState.isExporting) {
-                                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                                } else {
-                                    Icon(Icons.Default.Share, contentDescription = "Export ${lesson.title}")
-                                }
+                            Checkbox(
+                                checked = selectable.isSelected,
+                                onCheckedChange = { viewModel.toggleCategory(selectable.category.id) }
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(selectable.category.name, style = MaterialTheme.typography.titleMedium)
+                                Text("${selectable.studentCount} students", style = MaterialTheme.typography.bodySmall)
                             }
                         }
+                    }
+                }
+
+                Button(
+                    onClick = viewModel::exportSelected,
+                    enabled = !uiState.isExporting && uiState.categories.any { it.isSelected },
+                    modifier = Modifier.fillMaxWidth().padding(16.dp)
+                ) {
+                    if (uiState.isExporting) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                    } else {
+                        Text("Export Selected")
                     }
                 }
             }
         }
     }
 }
-
