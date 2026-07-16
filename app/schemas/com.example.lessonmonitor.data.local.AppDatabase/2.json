@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 1,
-    "identityHash": "da64b1ddec7c95de5041a91ccf5abb3d",
+    "version": 2,
+    "identityHash": "8ddd2be41651c0bb7cec39fc7c7d08ee",
     "entities": [
       {
         "tableName": "user",
@@ -32,13 +32,11 @@
           "columnNames": [
             "id"
           ]
-        },
-        "indices": [],
-        "foreignKeys": []
+        }
       },
       {
         "tableName": "categories",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `color` INTEGER, `icon` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `color` INTEGER, `icon` TEXT, `sortOrder` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -55,20 +53,23 @@
           {
             "fieldPath": "description",
             "columnName": "description",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "color",
             "columnName": "color",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "icon",
             "columnName": "icon",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sortOrder",
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "createdAt",
@@ -88,13 +89,11 @@
           "columnNames": [
             "id"
           ]
-        },
-        "indices": [],
-        "foreignKeys": []
+        }
       },
       {
         "tableName": "lessons",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `categoryId` INTEGER NOT NULL, `title` TEXT NOT NULL, `description` TEXT, `facilitatorName` TEXT, `place` TEXT, `isRecurring` INTEGER NOT NULL, `recurrenceType` TEXT NOT NULL, `recurrenceDaysOfWeek` TEXT, `startDate` INTEGER NOT NULL, `endDate` INTEGER, `startTime` INTEGER, `endTime` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `categoryId` INTEGER NOT NULL, `title` TEXT NOT NULL, `description` TEXT, `facilitatorName` TEXT, `place` TEXT, `startDate` INTEGER NOT NULL, `startTime` INTEGER, `sortOrder` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -117,38 +116,17 @@
           {
             "fieldPath": "description",
             "columnName": "description",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "facilitatorName",
             "columnName": "facilitatorName",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "place",
             "columnName": "place",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "isRecurring",
-            "columnName": "isRecurring",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "recurrenceType",
-            "columnName": "recurrenceType",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "recurrenceDaysOfWeek",
-            "columnName": "recurrenceDaysOfWeek",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "startDate",
@@ -157,22 +135,15 @@
             "notNull": true
           },
           {
-            "fieldPath": "endDate",
-            "columnName": "endDate",
-            "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
             "fieldPath": "startTime",
             "columnName": "startTime",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
-            "fieldPath": "endTime",
-            "columnName": "endTime",
+            "fieldPath": "sortOrder",
+            "columnName": "sortOrder",
             "affinity": "INTEGER",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "createdAt",
@@ -237,26 +208,22 @@
           {
             "fieldPath": "photoPath",
             "columnName": "photoPath",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "phone",
             "columnName": "phone",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "email",
             "columnName": "email",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "notes",
             "columnName": "notes",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "createdAt",
@@ -276,13 +243,11 @@
           "columnNames": [
             "id"
           ]
-        },
-        "indices": [],
-        "foreignKeys": []
+        }
       },
       {
         "tableName": "enrollments",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `lessonId` INTEGER NOT NULL, `studentId` INTEGER NOT NULL, `enrolledAt` INTEGER NOT NULL, `active` INTEGER NOT NULL, FOREIGN KEY(`lessonId`) REFERENCES `lessons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`studentId`) REFERENCES `students`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `categoryId` INTEGER NOT NULL, `studentId` INTEGER NOT NULL, `enrolledAt` INTEGER NOT NULL, `active` INTEGER NOT NULL, FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`studentId`) REFERENCES `students`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -291,8 +256,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "lessonId",
-            "columnName": "lessonId",
+            "fieldPath": "categoryId",
+            "columnName": "categoryId",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -323,13 +288,13 @@
         },
         "indices": [
           {
-            "name": "index_enrollments_lessonId",
+            "name": "index_enrollments_categoryId",
             "unique": false,
             "columnNames": [
-              "lessonId"
+              "categoryId"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_enrollments_lessonId` ON `${TABLE_NAME}` (`lessonId`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_enrollments_categoryId` ON `${TABLE_NAME}` (`categoryId`)"
           },
           {
             "name": "index_enrollments_studentId",
@@ -341,23 +306,23 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_enrollments_studentId` ON `${TABLE_NAME}` (`studentId`)"
           },
           {
-            "name": "index_enrollments_lessonId_studentId",
+            "name": "index_enrollments_categoryId_studentId",
             "unique": true,
             "columnNames": [
-              "lessonId",
+              "categoryId",
               "studentId"
             ],
             "orders": [],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_enrollments_lessonId_studentId` ON `${TABLE_NAME}` (`lessonId`, `studentId`)"
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_enrollments_categoryId_studentId` ON `${TABLE_NAME}` (`categoryId`, `studentId`)"
           }
         ],
         "foreignKeys": [
           {
-            "table": "lessons",
+            "table": "categories",
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
-              "lessonId"
+              "categoryId"
             ],
             "referencedColumns": [
               "id"
@@ -377,8 +342,8 @@
         ]
       },
       {
-        "tableName": "attendance_sessions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `lessonId` INTEGER NOT NULL, `sessionDate` INTEGER NOT NULL, `facilitatorOverride` TEXT, `placeOverride` TEXT, `notes` TEXT, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`lessonId`) REFERENCES `lessons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "tableName": "attendance_records",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `lessonId` INTEGER NOT NULL, `studentId` INTEGER NOT NULL, `status` TEXT NOT NULL, `absenceReason` TEXT, `completed` INTEGER NOT NULL, `recordedAt` INTEGER NOT NULL, FOREIGN KEY(`lessonId`) REFERENCES `lessons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`studentId`) REFERENCES `students`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -389,94 +354,6 @@
           {
             "fieldPath": "lessonId",
             "columnName": "lessonId",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "sessionDate",
-            "columnName": "sessionDate",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "facilitatorOverride",
-            "columnName": "facilitatorOverride",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "placeOverride",
-            "columnName": "placeOverride",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "notes",
-            "columnName": "notes",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "createdAt",
-            "columnName": "createdAt",
-            "affinity": "INTEGER",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": true,
-          "columnNames": [
-            "id"
-          ]
-        },
-        "indices": [
-          {
-            "name": "index_attendance_sessions_lessonId",
-            "unique": false,
-            "columnNames": [
-              "lessonId"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_attendance_sessions_lessonId` ON `${TABLE_NAME}` (`lessonId`)"
-          },
-          {
-            "name": "index_attendance_sessions_lessonId_sessionDate",
-            "unique": true,
-            "columnNames": [
-              "lessonId",
-              "sessionDate"
-            ],
-            "orders": [],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_attendance_sessions_lessonId_sessionDate` ON `${TABLE_NAME}` (`lessonId`, `sessionDate`)"
-          }
-        ],
-        "foreignKeys": [
-          {
-            "table": "lessons",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "lessonId"
-            ],
-            "referencedColumns": [
-              "id"
-            ]
-          }
-        ]
-      },
-      {
-        "tableName": "attendance_records",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `studentId` INTEGER NOT NULL, `status` TEXT NOT NULL, `absenceReason` TEXT, `recordedAt` INTEGER NOT NULL, FOREIGN KEY(`sessionId`) REFERENCES `attendance_sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`studentId`) REFERENCES `students`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
-        "fields": [
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "sessionId",
-            "columnName": "sessionId",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -495,8 +372,13 @@
           {
             "fieldPath": "absenceReason",
             "columnName": "absenceReason",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "completed",
+            "columnName": "completed",
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "recordedAt",
@@ -513,13 +395,13 @@
         },
         "indices": [
           {
-            "name": "index_attendance_records_sessionId",
+            "name": "index_attendance_records_lessonId",
             "unique": false,
             "columnNames": [
-              "sessionId"
+              "lessonId"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_attendance_records_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_attendance_records_lessonId` ON `${TABLE_NAME}` (`lessonId`)"
           },
           {
             "name": "index_attendance_records_studentId",
@@ -531,23 +413,23 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_attendance_records_studentId` ON `${TABLE_NAME}` (`studentId`)"
           },
           {
-            "name": "index_attendance_records_sessionId_studentId",
+            "name": "index_attendance_records_lessonId_studentId",
             "unique": true,
             "columnNames": [
-              "sessionId",
+              "lessonId",
               "studentId"
             ],
             "orders": [],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_attendance_records_sessionId_studentId` ON `${TABLE_NAME}` (`sessionId`, `studentId`)"
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_attendance_records_lessonId_studentId` ON `${TABLE_NAME}` (`lessonId`, `studentId`)"
           }
         ],
         "foreignKeys": [
           {
-            "table": "attendance_sessions",
+            "table": "lessons",
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
             "columns": [
-              "sessionId"
+              "lessonId"
             ],
             "referencedColumns": [
               "id"
@@ -567,10 +449,9 @@
         ]
       }
     ],
-    "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'da64b1ddec7c95de5041a91ccf5abb3d')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8ddd2be41651c0bb7cec39fc7c7d08ee')"
     ]
   }
 }

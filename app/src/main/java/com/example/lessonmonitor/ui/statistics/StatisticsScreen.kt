@@ -38,8 +38,6 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatisticsScreen(
-    categoryId: Long = 0L,
-    onCategoryClick: (categoryId: Long) -> Unit,
     onStudentClick: (studentId: Long) -> Unit,
     viewModel: StatisticsViewModel = hiltViewModel()
 ) {
@@ -61,16 +59,13 @@ fun StatisticsScreen(
                     )
                 },
                 navigationIcon = {
-                    if (uiState.selectedStudentId != null) {
-                        IconButton(onClick = { viewModel.selectStudent(uiState.selectedStudentId!!) }) {} // no-op, handled below
-                    }
                     if (showBack) {
                         IconButton(onClick = {
-                            val studentId = uiState.selectedStudentId
-                            if (studentId != null) {
-                                viewModel.selectStudent(studentId)
+                            if (uiState.selectedStudentId != null) {
+                                viewModel.backToStudentStats()
+                            } else {
+                                viewModel.backToCategories()
                             }
-                            viewModel.backToCategories()
                         }) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                         }

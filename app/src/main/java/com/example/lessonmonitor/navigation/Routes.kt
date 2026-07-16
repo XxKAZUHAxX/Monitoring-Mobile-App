@@ -37,7 +37,6 @@ object Routes {
     // Statistics tab graph
     const val STATISTICS_GRAPH = "statistics_graph"
     const val STATISTICS = "statistics"
-    const val CATEGORY_STATS_PATTERN = "category_stats/{categoryId}"
 
     // Settings tab graph
     const val SETTINGS_GRAPH = "settings_graph"
@@ -56,5 +55,5 @@ object Routes {
     fun studentForm(studentId: Long = NEW_ID) = "student_form/$studentId"
     fun studentDetail(studentId: Long) = "student_detail/$studentId"
     fun studentEnrollment(categoryId: Long) = "student_enrollment/$categoryId"
-    fun categoryStats(categoryId: Long) = "category_stats/$categoryId"
+
 }

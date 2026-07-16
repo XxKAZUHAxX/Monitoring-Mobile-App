@@ -134,7 +134,13 @@ class StatisticsViewModel @Inject constructor(
         }
     }
 
+    fun backToStudentStats() {
+        _uiState.update { it.copy(selectedStudentId = null, studentLessonRows = emptyList()) }
+    }
+
     fun backToCategories() {
-        _uiState.update { it.copy(selectedCategoryId = null, selectedStudentId = null) }
+        _uiState.update {
+            it.copy(selectedCategoryId = null, selectedStudentId = null, studentRows = emptyList(), studentLessonRows = emptyList())
+        }
     }
 }
