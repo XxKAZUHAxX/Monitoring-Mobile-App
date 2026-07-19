@@ -45,11 +45,12 @@ fun MainScreen(rootNavController: NavHostController) {
                                 // If route == graphRoute we're already at root — do nothing.
                                 if (currentDestination.route != item.graphRoute) {
                                     innerNavController.popBackStack(item.graphRoute, inclusive = false)
+                                    innerNavController.navigate(item.graphRoute)
                                 }
                             } else {
                                 innerNavController.navigate(item.graphRoute) {
                                     popUpTo(innerNavController.graph.findStartDestination().id) {
-                                        saveState = true
+                                        saveState = false
                                     }
                                     launchSingleTop = true
                                     restoreState = true
